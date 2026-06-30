@@ -1,0 +1,176 @@
+================================================================================
+                    FIX: "Failed to save account" ERROR
+                    Admin Bank Account Upload Issue
+================================================================================
+
+PROBLEM IDENTIFIED:
+--------------------
+The database table "admin_bank_accounts" has a different schema than what the 
+API expects. The API is trying to insert/update columns that don't exist in 
+the database.
+
+MISSING COLUMNS IN DATABASE:
+------------------------------
+✗ upi_id
+✗ qr_code_image (database has "qr_code" instead)
+✗ is_default
+✗ display_order
+✗ created_by
+✗ updated_at
+
+EXTRA COLUMNS IN DATABASE (not needed):
+-----------------------------------------
+✓ branch_name (not used by API)
+
+
+SOLUTION - RUN THIS SQL SCRIPT:
+---------------------------------
+
+Step 1: Open phpMyAdmin
+   → Go to: http://localhost/phpmyadmin
+
+Step 2: Select Database
+   → Click on "jinglebell" database in left sidebar
+
+Step 3: Open SQL Tab
+   → Click "SQL" tab at the top
+
+Step 4: Run Fix Script
+   → Open file: database/fix_admin_bank_accounts.sql
+   → Copy ALL the content
+   → Paste in the SQL tab
+   → Click "Go" button
+
+Step 5: Verify Success
+   → You should see: "Query executed successfully"
+   → Click on "admin_bank_accounts" table
+   → Go to "Structure" tab
+   → Verify you see these columns:
+     • id
+     • account_name
+     • bank_name
+     • account_number
+     • ifsc_code
+     • upi_id
+     • qr_code_image
+     • is_active
+     • is_default
+     • display_order
+     • created_by
+     • created_at
+     • updated_at
+
+
+ALTERNATIVE - MANUAL SQL COMMANDS:
+------------------------------------
+If you prefer, run this SQL directly in phpMyAdmin:
+
+DROP TABLE IF EXISTS admin_bank_accounts;
+
+CREATE TABLE admin_bank_accounts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    account_name VARCHAR(255) NOT NULL,
+    bank_name VARCHAR(255) NOT NULL,
+    account_number VARCHAR(50) NOT NULL,
+    ifsc_code VARCHAR(20) NOT NULL,
+    upi_id VARCHAR(255) DEFAULT NULL,
+    qr_code_image VARCHAR(255) DEFAULT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    is_default TINYINT(1) DEFAULT 0,
+    display_order INT DEFAULT 0,
+    created_by INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_active (is_active),
+    INDEX idx_default (is_default)
+);
+
+
+AFTER FIXING THE DATABASE:
+----------------------------
+1. Refresh the admin panel page (Ctrl + F5)
+2. Clear browser cache if needed
+3. Try adding a bank account again
+4. Fill in the required fields:
+   • Account Holder Name *
+   • Bank Name *
+   • Account Number *
+   • IFSC Code *
+5. Optional fields:
+   • UPI ID
+   • QR Code Image (click to upload)
+   • Display Order
+   • Set as default
+   • Active checkbox
+6. Click "Save Account"
+
+
+WHAT WAS FIXED:
+----------------
+✅ Updated database schema to match API requirements
+✅ Added missing columns (upi_id, is_default, display_order, etc.)
+✅ Renamed qr_code → qr_code_image
+✅ Added created_by to track which admin added the account
+✅ Added updated_at timestamp
+✅ Added indexes for better performance
+✅ Updated PRODUCTION_DATABASE_SCHEMA.sql for future imports
+
+
+FILES MODIFIED:
+----------------
+✓ database/PRODUCTION_DATABASE_SCHEMA.sql (updated schema)
+✓ database/fix_admin_bank_accounts.sql (new fix script)
+
+
+TROUBLESHOOTING:
+-----------------
+Problem: Still getting "Failed to save account"
+Solution: 
+  → Clear browser cache (Ctrl + Shift + Delete)
+  → Hard refresh the page (Ctrl + F5)
+  → Check browser console for errors (F12 → Console tab)
+
+Problem: SQL query gives error
+Solution:
+  → Make sure you selected the correct database (jinglebell)
+  → Check that MySQL is running in XAMPP
+  → Try dropping the table manually first: DROP TABLE admin_bank_accounts;
+
+Problem: Can't see the bank accounts after adding
+Solution:
+  → Check if is_active is checked
+  → Refresh the page
+  → Check browser console for JavaScript errors
+
+
+TESTING THE FIX:
+-----------------
+1. Login to admin panel: http://localhost/jinglebell/admin/login.php
+   Username: admin
+   Password: password
+
+2. Navigate to Payment Details
+   → Look for "Bank Accounts" tab or section
+
+3. Click "Add Bank Account"
+
+4. Fill in the form:
+   Account Holder Name: Test Company Pvt Ltd
+   Bank Name: HDFC Bank
+   Account Number: 1234567890
+   IFSC Code: HDFC0001234
+   UPI ID: test@upi (optional)
+   Display Order: 0
+   ✓ Active (checked)
+   □ Set as default (optional)
+
+5. Click "Save Account"
+
+6. Success! You should see:
+   → "Bank account added successfully"
+   → The account appears in the list
+
+
+================================================================================
+                    ISSUE FIXED - READY TO USE!
+================================================================================

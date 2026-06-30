@@ -1,0 +1,712 @@
+/* =====================================================
+   TradeZenfy Platform - MOBILE RESPONSIVE CSS
+   Optimized for all screen sizes
+   ===================================================== */
+
+/* ── UNIVERSAL MOBILE BASE ── */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+body {
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden !important;
+  max-width: 100vw;
+}
+
+/* Prevent horizontal overflow */
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── MOBILE BOTTOM NAVIGATION ── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--groww-card, #FFFFFF);
+  border-top: 1px solid var(--groww-border, #E5E7EB);
+  padding: 8px 0;
+  z-index: 999;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+}
+
+.bottom-nav-items {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  color: var(--groww-text-secondary, #6B7280);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s;
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+}
+
+.bottom-nav-item i {
+  font-size: 20px;
+}
+
+.bottom-nav-item.active {
+  color: var(--groww-green, #00D09C);
+}
+
+.bottom-nav-item:active {
+  transform: scale(0.95);
+}
+
+/* ── TABLET RESPONSIVE (768px - 1024px) ── */
+@media (max-width: 1024px) {
+  .ft-layout {
+    grid-template-columns: 240px 1fr 280px !important;
+  }
+  
+  .content {
+    padding: 20px !important;
+  }
+}
+
+/* ── MOBILE RESPONSIVE (< 768px) ── */
+@media (max-width: 768px) {
+  
+  /* Show bottom navigation on mobile */
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+  
+  /* Add padding to main content to prevent overlap with bottom nav */
+  .main {
+    padding-bottom: 80px !important;
+  }
+  
+  /* Forex Trading Layout - Mobile Optimized */
+  .ft-layout {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr auto auto !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Instruments Panel - Collapsible */
+  .ft-instruments {
+    position: fixed !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 85% !important;
+    max-width: 320px !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    transition: left 0.3s ease !important;
+    box-shadow: 2px 0 20px rgba(0,0,0,0.5) !important;
+  }
+  
+  .ft-instruments.mobile-open {
+    left: 0 !important;
+  }
+  
+  .ft-instruments-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 999;
+  }
+  
+  .ft-instruments-overlay.active {
+    display: block;
+  }
+  
+  /* Chart Panel - Full Width */
+  .ft-chart-area {
+    min-height: 50vh !important;
+    order: 1 !important;
+  }
+  
+  #chartContainer {
+    min-height: 350px !important;
+  }
+  
+  .chart-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+  
+  .chart-symbol {
+    font-size: 18px !important;
+  }
+  
+  .chart-price-info {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  
+  .chart-controls {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 8px 12px !important;
+    white-space: nowrap !important;
+  }
+  
+  .chart-controls::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .timeframe-btn, .chart-type-btn {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* Order Panel - Bottom Sheet */
+  .ft-order-panel {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-height: 60vh !important;
+    border-left: none !important;
+    border-top: 2px solid var(--ft-border) !important;
+    border-radius: 20px 20px 0 0 !important;
+    z-index: 900 !important;
+    overflow-y: auto !important;
+    order: 3 !important;
+    transform: translateY(calc(100% - 60px)) !important;
+    transition: transform 0.3s ease !important;
+  }
+  
+  .ft-order-panel.mobile-open {
+    transform: translateY(0) !important;
+  }
+  
+  .ft-order-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 12px !important;
+    background: var(--ft-panel) !important;
+    border-bottom: 1px solid var(--ft-border) !important;
+    cursor: pointer !important;
+  }
+  
+  .ft-order-toggle::after {
+    content: '▲' !important;
+    font-size: 12px !important;
+    color: var(--ft-text-dim) !important;
+  }
+  
+  .ft-order-panel.mobile-open .ft-order-toggle::after {
+    content: '▼' !important;
+  }
+  
+  .order-form {
+    padding: 12px !important;
+  }
+  
+  .trade-buttons {
+    position: sticky !important;
+    bottom: 0 !important;
+    background: var(--ft-panel) !important;
+    padding: 12px !important;
+    margin: 0 -12px -12px -12px !important;
+  }
+  
+  .trade-btn {
+    padding: 12px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Positions Panel */
+  .ft-positions {
+    order: 4 !important;
+    max-height: 250px !important;
+    padding: 12px !important;
+  }
+  
+  .positions-header {
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+  }
+  
+  .positions-tabs {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  .pos-tab {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* Mobile Header Bar */
+  .ft-mobile-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px !important;
+    background: var(--ft-panel) !important;
+    border-bottom: 1px solid var(--ft-border) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+  }
+  
+  .ft-mobile-header button {
+    background: var(--ft-panel-alt) !important;
+    border: 1px solid var(--ft-border) !important;
+    color: var(--ft-text) !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+  }
+  
+  .ft-mobile-header .symbol-info {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+  }
+  
+  /* User Dashboard Mobile */
+  .sidebar {
+    width: 280px !important;
+    position: fixed !important;
+    left: -280px !important;
+    top: 0 !important;
+    height: 100vh !important;
+    z-index: 1001 !important;
+    transition: left 0.3s ease !important;
+    box-shadow: 2px 0 20px rgba(0,0,0,0.3) !important;
+  }
+  
+  .sidebar.expanded {
+    left: 0 !important;
+  }
+  
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+  }
+  
+  .sidebar-overlay.active {
+    display: block;
+  }
+  
+  .main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding-bottom: 80px !important;
+  }
+  
+  .top-header {
+    padding: 12px 16px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+  }
+  
+  .header-left h1 {
+    font-size: 18px !important;
+  }
+  
+  .header-right {
+    gap: 8px !important;
+  }
+  
+  .content {
+    padding: 16px !important;
+  }
+  
+  /* Stats Grid Mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  
+  .stat-card {
+    padding: 16px !important;
+  }
+  
+  .stat-card .value {
+    font-size: 20px !important;
+  }
+  
+  .stat-icon {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Tables Mobile */
+  .card {
+    margin-bottom: 16px !important;
+  }
+  
+  .card-header {
+    padding: 14px 16px !important;
+  }
+  
+  .card-header h3 {
+    font-size: 14px !important;
+  }
+  
+  table {
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    white-space: nowrap !important;
+    width: 100% !important;
+  }
+  
+  table::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  table::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  table::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+  }
+  
+  th, td {
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Bottom Navigation */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: var(--groww-card) !important;
+    border-top: 1px solid var(--groww-border) !important;
+    padding: 8px 0 !important;
+    z-index: 999 !important;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.08) !important;
+  }
+  
+  .bottom-nav-items {
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+  }
+  
+  .bottom-nav-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 8px 8px !important;
+    color: var(--groww-text-secondary) !important;
+    text-decoration: none !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s !important;
+    flex: 1 !important;
+  }
+  
+  .bottom-nav-item.active {
+    color: var(--groww-green) !important;
+  }
+  
+  .bottom-nav-item i {
+    font-size: 18px !important;
+  }
+  
+  /* Forms Mobile */
+  .form-group {
+    margin-bottom: 14px !important;
+  }
+  
+  input, select {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    padding: 12px !important;
+  }
+  
+  /* Buttons Mobile */
+  .btn {
+    width: 100% !important;
+    padding: 14px !important;
+  }
+  
+  /* Badges Mobile */
+  .badge {
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+  }
+  
+  /* Admin Panel Mobile */
+  .admin-header {
+    padding: 16px !important;
+  }
+  
+  .admin-header h1 {
+    font-size: 20px !important;
+  }
+  
+  .filters {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 8px !important;
+  }
+  
+  .filter-btn {
+    flex-shrink: 0 !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Stock Detail Mobile */
+  .stock-detail-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 16px !important;
+  }
+  
+  .stock-price-large {
+    font-size: 28px !important;
+  }
+  
+  /* Landing Page Mobile */
+  .container {
+    padding: 0 16px !important;
+  }
+  
+  .hero-inner {
+    padding: 6rem 16px 3rem !important;
+  }
+  
+  .hero-title {
+    font-size: 2.5rem !important;
+  }
+  
+  .hero-sub {
+    font-size: 1rem !important;
+  }
+  
+  .hero-cta {
+    flex-direction: column !important;
+  }
+  
+  .btn-primary, .btn-ghost {
+    width: 100% !important;
+    text-align: center !important;
+  }
+  
+  .hero-stats {
+    flex-direction: column !important;
+  }
+  
+  .stat-pill {
+    width: 100% !important;
+  }
+  
+  .feat-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  .feat-card {
+    padding: 1.5rem !important;
+  }
+  
+  /* Navbar Mobile */
+  nav {
+    padding: 1rem 16px !important;
+  }
+  
+  .nav-links {
+    display: none !important;
+  }
+  
+  .nav-links.active {
+    display: flex !important;
+    flex-direction: column !important;
+    position: fixed !important;
+    top: 60px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(4,6,17,0.98) !important;
+    padding: 2rem !important;
+    gap: 1.5rem !important;
+    z-index: 100 !important;
+    overflow-y: auto !important;
+  }
+  
+  .nav-links a {
+    font-size: 1.2rem !important;
+    padding: 1rem 0 !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+  
+  .mobile-menu-btn {
+    display: block !important;
+  }
+  
+  .nav-cta.desktop {
+    display: none !important;
+  }
+  
+  .nav-cta.mobile {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 1rem 0 !important;
+    gap: 0.75rem !important;
+  }
+  
+  /* Ticker Mobile */
+  .ticker-wrap {
+    padding: 0.5rem 0 !important;
+  }
+  
+  .tick {
+    font-size: 0.7rem !important;
+    padding: 0 1.5rem !important;
+  }
+}
+
+/* ── SMALL MOBILE (< 480px) ── */
+@media (max-width: 480px) {
+  
+  .ft-instruments {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .sidebar {
+    width: 260px !important;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .hero-title {
+    font-size: 2rem !important;
+  }
+  
+  .chart-header {
+    padding: 10px !important;
+  }
+  
+  .chart-symbol {
+    font-size: 16px !important;
+  }
+  
+  .price-display {
+    font-size: 18px !important;
+  }
+  
+  .timeframe-btn, .chart-type-btn {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+  }
+  
+  .bottom-nav-item {
+    font-size: 9px !important;
+    padding: 6px 4px !important;
+  }
+  
+  .bottom-nav-item i {
+    font-size: 16px !important;
+  }
+  
+  .content {
+    padding: 12px !important;
+  }
+  
+  th, td {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* ── LANDSCAPE MOBILE ── */
+@media (max-width: 768px) and (orientation: landscape) {
+  
+  .ft-layout {
+    grid-template-rows: auto 1fr auto !important;
+  }
+  
+  #chartContainer {
+    min-height: 250px !important;
+  }
+  
+  .ft-order-panel {
+    max-height: 50vh !important;
+  }
+  
+  .mobile-bottom-nav {
+    padding: 4px 0 !important;
+  }
+  
+  .bottom-nav-item {
+    padding: 4px 8px !important;
+  }
+}
+
+/* ── DESKTOP ONLY (Hide mobile elements) ── */
+@media (min-width: 769px) {
+  .mobile-bottom-nav,
+  .ft-mobile-header,
+  .sidebar-toggle,
+  .sidebar-overlay,
+  .ft-instruments-overlay {
+    display: none !important;
+  }
+  
+  .ft-order-toggle {
+    display: none !important;
+  }
+  
+  .ft-order-panel {
+    transform: none !important;
+  }
+}
+
+/* ── PRINT STYLES ── */
+@media print {
+  .sidebar,
+  .mobile-bottom-nav,
+  .ft-order-panel,
+  .ft-mobile-header {
+    display: none !important;
+  }
+  
+  .main {
+    margin-left: 0 !important;
+  }
+}

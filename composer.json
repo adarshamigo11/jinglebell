@@ -1,0 +1,7 @@
+{
+  "name": "tradezenfy/tradezenfy",
+  "description": "TradeZenfy - Stock Trading Platform",
+  "require": {
+    "php": ">=8.1"
+  }
+}

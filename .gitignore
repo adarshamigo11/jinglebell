@@ -1,0 +1,35 @@
+# Dependencies
+/vendor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Debug files (don't push secrets)
+api/debug-angel-one.php
+api/discover-tokens.php
+api/diagnose-angel-one.php
+api/diagnose-live-data.php
+
+# Uploads (user files shouldn't be in repo)
+uploads/payments/*
+uploads/qr-codes/*
+!uploads/qr-codes/.gitkeep
+!uploads/payments/.gitkeep
+
+# Docs / notes
+*.md
+!README.md
+
+# Backups
+*.zip
+*.bak
+*-backup*
+
+# Local config (NEVER push secrets)
+config-local.php

@@ -1,0 +1,297 @@
+================================================================================
+                    JINGLEBELL - LOCALHOST SETUP GUIDE
+                        XAMPP Installation Steps
+================================================================================
+
+PREREQUISITES:
+--------------
+✅ XAMPP installed (Apache + MySQL + PHP)
+✅ Project folder at: C:\xampp\htdocs\jinglebell
+
+
+STEP 1: START XAMPP SERVICES
+-----------------------------
+1. Open XAMPP Control Panel
+2. Start these services:
+   - Apache (click Start button)
+   - MySQL (click Start button)
+3. Wait until both show "Running" status
+
+
+STEP 2: CREATE DATABASE IN PHPMYADMIN
+--------------------------------------
+1. Open your web browser
+2. Go to: http://localhost/phpmyadmin
+3. Click on "New" in the left sidebar
+4. Enter database name: jinglebell
+5. Select Collation: utf8mb4_general_ci
+6. Click "Create" button
+
+
+STEP 3: IMPORT DATABASE SCHEMA
+-------------------------------
+Method 1: Using phpMyAdmin (Recommended)
+-----------------------------------------
+1. In phpMyAdmin, select "jinglebell" database from left sidebar
+2. Click on "Import" tab at the top
+3. Click "Choose File" button
+4. Navigate to: C:\xampp\htdocs\jinglebell\database\PRODUCTION_DATABASE_SCHEMA.sql
+5. Click "Go" button at the bottom
+6. Wait for success message: "Import has been successfully finished"
+
+Method 2: Using MySQL Command Line
+------------------------------------
+1. Open Command Prompt (Windows)
+2. Navigate to MySQL bin directory:
+   cd C:\xampp\mysql\bin
+3. Run this command:
+   mysql -u root -p jinglebell < C:\xampp\htdocs\jinglebell\database\PRODUCTION_DATABASE_SCHEMA.sql
+4. Press Enter (no password needed for default XAMPP)
+
+
+STEP 4: VERIFY DATABASE IMPORT
+-------------------------------
+1. In phpMyAdmin, select "jinglebell" database
+2. You should see these 21 tables:
+   - admins
+   - account_registrations
+   - user_payment_details
+   - payments
+   - withdrawals
+   - admin_bank_accounts
+   - stocks
+   - stock_price_cache
+   - user_watchlist
+   - user_orders
+   - user_holdings
+   - trade_history
+   - forex_pairs
+   - forex_orders
+   - forex_watchlist
+   - forex_transactions
+   - fno_contracts
+   - fno_orders
+   - fno_positions
+   - fno_watchlist
+   - fno_transactions
+   - compliance_blocked
+   - admin_activity_log
+
+3. Check if seed data was inserted:
+   - Click on "admins" table → Browse tab → Should see 1 admin record
+   - Click on "account_registrations" → Browse tab → Should see 1 test user
+   - Click on "stocks" table → Browse tab → Should see 10 sample stocks
+   - Click on "forex_pairs" table → Browse tab → Should see 24 forex pairs
+
+
+STEP 5: CREATE UPLOAD DIRECTORIES
+----------------------------------
+These directories need to be writable. Create them if they don't exist:
+
+1. C:\xampp\htdocs\jinglebell\uploads\
+2. C:\xampp\htdocs\jinglebell\uploads\payments\
+3. C:\xampp\htdocs\jinglebell\uploads\qr-codes\
+
+To create folders in Windows:
+- Open File Explorer
+- Navigate to C:\xampp\htdocs\jinglebell\
+- Right-click → New → Folder → Name it "uploads"
+- Inside "uploads", create two more folders: "payments" and "qr-codes"
+
+
+STEP 6: ACCESS THE APPLICATION
+-------------------------------
+User Frontend:
+- Homepage: http://localhost/jinglebell/
+- User Login: http://localhost/jinglebell/login.php
+- User Register: http://localhost/jinglebell/register.php
+- Stock Market: http://localhost/jinglebell/stock-market.php
+- Forex Market: http://localhost/jinglebell/forex-market.php
+- F&O Market: http://localhost/jinglebell/fno-market.php
+
+Admin Panel:
+- Admin Login: http://localhost/jinglebell/admin/login.php
+- Admin Dashboard: http://localhost/jinglebell/admin/index.php
+- Manage Users: http://localhost/jinglebell/admin/manage-user.php
+- Stock Management: http://localhost/jinglebell/admin/stocks.php
+- Forex Orders: http://localhost/jinglebell/admin/forex-orders.php
+- F&O Dashboard: http://localhost/jinglebell/admin/fno-dashboard.php
+
+
+STEP 7: DEFAULT LOGIN CREDENTIALS
+----------------------------------
+Admin Login:
+- Username: admin
+- Password: password
+⚠️ IMPORTANT: Change this password immediately after first login!
+
+Test User Login:
+- Username: aaaa
+- Password: 123456
+- Status: Pre-approved with ₹100,000 balance
+
+
+STEP 8: TEST THE APPLICATION
+------------------------------
+1. Test User Registration:
+   - Go to: http://localhost/jinglebell/register.php
+   - Fill in the form
+   - Submit and verify in phpMyAdmin → account_registrations table
+
+2. Test User Login:
+   - Go to: http://localhost/jinglebell/login.php
+   - Use: username = aaaa, password = 123456
+   - Should redirect to user dashboard
+
+3. Test Admin Login:
+   - Go to: http://localhost/jinglebell/admin/login.php
+   - Use: username = admin, password = password
+   - Should redirect to admin dashboard
+
+4. Test Stock Trading:
+   - Login as user (aaaa / 123456)
+   - Go to stock market
+   - Try placing a BUY order
+
+5. Test Admin Functions:
+   - Login as admin
+   - Check pending user registrations
+   - View orders and manage stocks
+
+
+TROUBLESHOOTING:
+-----------------
+Problem: Apache won't start
+Solution: 
+- Check if port 80 is being used by Skype, IIS, or other services
+- Change Apache port in XAMPP → Config → httpd.conf
+- Or stop the conflicting service
+
+Problem: MySQL won't start
+Solution:
+- Check if port 3306 is being used by another MySQL instance
+- Stop other MySQL services in Windows Services
+- Change MySQL port in XAMPP → Config → my.ini
+
+Problem: Database connection failed
+Solution:
+- Verify MySQL is running in XAMPP Control Panel
+- Check config.php has correct DB credentials
+- Test connection: http://localhost/phpmyadmin
+
+Problem: Permission denied errors
+Solution:
+- Make sure uploads folder exists
+- Right-click uploads folder → Properties → Security
+- Give full control to your Windows user
+
+Problem: Blank page / White screen
+Solution:
+- Check Apache error logs: C:\xampp\apache\logs\error.log
+- Enable error display in config.php (already enabled for development)
+- Check PHP version (requires PHP 7.4+)
+
+Problem: Session errors
+Solution:
+- Clear browser cookies
+- Check C:\xampp\tmp folder exists and is writable
+
+
+STEP 9: CHANGE ADMIN PASSWORD (IMPORTANT!)
+-------------------------------------------
+1. Login to admin panel with default credentials
+2. Go to Admin Profile or run this SQL in phpMyAdmin:
+
+   To change admin password to "MyNewPassword123":
+   
+   First, generate a new bcrypt hash using this PHP script:
+   Create file: C:\xampp\htdocs\jinglebell\generate-hash.php
+   
+   Content:
+   <?php
+   echo password_hash('MyNewPassword123', PASSWORD_BCRYPT);
+   ?>
+   
+   Run: http://localhost/jinglebell/generate-hash.php
+   Copy the hash output
+   
+   Then in phpMyAdmin SQL tab:
+   UPDATE admins 
+   SET password = 'YOUR_COPIED_HASH_HERE' 
+   WHERE username = 'admin';
+
+
+STEP 10: OPTIONAL - ADD MORE STOCKS
+------------------------------------
+You can add more stocks by running these SQL files in phpMyAdmin:
+- database/add_top_50_stocks.sql (Adds 50 NSE stocks)
+- database/add_stock_logos.sql (Adds logo URLs)
+- database/add_crypto_pairs.sql (Adds crypto pairs to forex)
+
+
+PROJECT STRUCTURE:
+-------------------
+jinglebell/
+├── admin/              - Admin panel pages
+├── api/                - AJAX API endpoints
+├── database/           - SQL schema files
+├── includes/           - Shared PHP includes
+├── public/assets/      - CSS, JS, images
+├── uploads/            - User uploaded files
+├── user/               - User dashboard pages
+├── config.php          - Main configuration (UPDATED FOR LOCALHOST)
+├── index.php           - Homepage
+├── login.php           - User login
+├── register.php        - User registration
+└── ... (other files)
+
+
+FEATURES AVAILABLE:
+--------------------
+✅ User Registration & Login
+✅ Stock Trading (NSE Stocks)
+✅ Forex Trading (24 currency pairs, crypto, metals, indices)
+✅ F&O Trading (Futures & Options)
+✅ Deposit & Withdrawal System
+✅ Admin Panel with Full Control
+✅ Live Price Updates (Yahoo Finance API)
+✅ User Portfolio Management
+✅ Order History & Trade History
+✅ Watchlist Management
+✅ Admin Bank Account Management
+✅ QR Code Payment Upload
+
+
+IMPORTANT NOTES:
+-----------------
+⚠️ This is configured for LOCALHOST development only
+⚠️ Do NOT use these settings for production deployment
+⚠️ Change default admin password immediately
+⚠️ Disable error display before going live
+⚠️ For production, update config.php with real hosting credentials
+
+
+NEXT STEPS AFTER LOCALHOST SETUP:
+----------------------------------
+1. Test all features thoroughly
+2. Add more stocks if needed
+3. Customize site name and branding in config.php
+4. Add your own admin bank account details
+5. Upload QR codes for payment
+6. Test deposit/withdrawal workflow
+7. When ready for production, follow DEPLOYMENT_GUIDE.md
+
+
+SUPPORT:
+---------
+If you encounter any issues:
+1. Check XAMPP error logs
+2. Verify database import was successful
+3. Check config.php settings
+4. Ensure all services are running
+5. Clear browser cache and cookies
+
+
+================================================================================
+                    SETUP COMPLETE - ENJOY TRADING! 🚀
+================================================================================
