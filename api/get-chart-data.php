@@ -47,7 +47,8 @@ try {
 
 // Fallback to Yahoo Finance if Angel One didn't work
 if ($chartData === null) {
-    $chartData = fetchYahooChartData($symbol, $range);
+    $yahooSymbol = toYahooSymbol($symbol);
+    $chartData = fetchYahooChartData($yahooSymbol, $range);
 }
 
 if ($chartData === null || empty($chartData['data'])) {
@@ -55,8 +56,40 @@ if ($chartData === null || empty($chartData['data'])) {
     exit;
 }
 
+// Also update display symbol in response
+$chartData['symbol'] = $symbol;
+
 echo json_encode($chartData);
 exit;
+
+function toYahooSymbol($symbol) {
+    $map = [
+        'Nifty 50'     => '^NSEI',
+        'Bank Nifty'   => '^NSEBANK',
+        'Nifty IT'     => '^CNXIT',
+        'Fin Nifty'    => '^CNXFIN',
+        'Midcap 100'   => '^NSEMDCP100',
+        'Smallcap 100' => '^CNXSMALLCAP',
+        'Nifty Auto'   => '^CNXAUTO',
+        'Nifty Pharma' => '^CNXPHARMA',
+        'Nifty Metal'  => '^CNXMETAL',
+        'Nifty Energy' => '^CNXENERGY',
+        'Nifty PSU Bank' => '^CNXPSUBANK',
+        'India VIX'    => '^INDIAVIX',
+        'Sensex'       => '^BSESN',
+        'RELIANCE'     => 'RELIANCE.NS',
+        'TCS'          => 'TCS.NS',
+        'INFY'         => 'INFY.NS',
+        'HDFCBANK'     => 'HDFCBANK.NS',
+        'ICICIBANK'    => 'ICICIBANK.NS',
+        'SBIN'         => 'SBIN.NS',
+        'BHARTIARTL'  => 'BHARTIARTL.NS',
+        'ITC'          => 'ITC.NS',
+        'LT'           => 'LT.NS',
+        'HINDUNILVR'   => 'HINDUNILVR.NS',
+    ];
+    return $map[$symbol] ?? $symbol;
+}
 
 // ══════════════════════════════════════════════════════
 // Angel One Historical Candle Data
