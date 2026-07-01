@@ -28,16 +28,17 @@ RUN echo "upload_max_filesize = 10M" > /usr/local/etc/php/conf.d/uploads.ini && 
     echo "max_execution_time = 60" >> /usr/local/etc/php/conf.d/uploads.ini
 
 # Set Apache to listen on PORT env var (Railway injects this)
-RUN echo "Listen \${PORT}" > /etc/apache2/ports.conf && \
-    echo "<VirtualHost *:\${PORT}>\n\
+RUN echo "Listen \${PORT}" >> /etc/apache2/ports.conf && \
+    printf '<VirtualHost *:${PORT}>\n\
     DocumentRoot /var/www/html\n\
     <Directory /var/www/html>\n\
         AllowOverride All\n\
         Require all granted\n\
     </Directory>\n\
-    ErrorLog \${APACHE_LOG_DIR}/error.log\n\
-    CustomLog \${APACHE_LOG_DIR}/access.log combined\n\
-</VirtualHost>" > /etc/apache2/sites-available/000-default.conf
+    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
+    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
+</VirtualHost>\n' > /etc/apache2/sites-available/000-default.conf && \
+    a2ensite 000-default
 
 # Copy project files
 COPY . /var/www/html/
