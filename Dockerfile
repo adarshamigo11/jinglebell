@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y \
 # Install required PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql mysqli curl mbstring
 
-# Enable Apache modules
-RUN a2enmod rewrite headers
+# Enable Apache modules (disable conflicting MPMs first)
+RUN a2dismod mpm_event mpm_worker && a2enmod mpm_prefork rewrite headers
 
 # Configure Apache to allow .htaccess
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
