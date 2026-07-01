@@ -375,52 +375,49 @@ CREATE TABLE IF NOT EXISTS `withdrawals` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ===== DEFAULT DATA =====
+-- ===== DEFAULT DATA (single-line for Railway console) =====
 
 -- Admin (password: password)
-INSERT INTO `admins` (`username`, `password`, `email`, `name`, `role`, `is_active`) VALUES
-('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@alphanumerical.com', 'System Admin', 'super_admin', 1);
+INSERT INTO `admins` (`username`, `password`, `email`, `name`, `role`, `is_active`) VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@alphanumerical.com', 'System Admin', 'super_admin', 1);
 
 -- Test user (password: password)
-INSERT INTO `account_registrations` (`first_name`, `last_name`, `email`, `username`, `password`, `phone`, `country`, `status`, `current_balance`) VALUES
-('Test', 'User', 'test@alphanumeric.com', 'aaaa', '$2y$12$19rSh9RCdM0jdFbrUgAweuQyP6yAHC2v9rtUePQsvEWOqpRPk1GpO', '9999999999', 'India', 'approved', 30034.85);
+INSERT INTO `account_registrations` (`first_name`, `last_name`, `email`, `username`, `password`, `phone`, `country`, `status`, `current_balance`) VALUES ('Test', 'User', 'test@alphanumeric.com', 'aaaa', '$2y$12$19rSh9RCdM0jdFbrUgAweuQyP6yAHC2v9rtUePQsvEWOqpRPk1GpO', '9999999999', 'India', 'approved', 30034.85);
 
 -- Bank account
-INSERT INTO `admin_bank_accounts` (`account_name`, `bank_name`, `account_number`, `ifsc_code`, `upi_id`, `is_active`) VALUES
-('hululu Info', 'IDFC', '909090909090', 'IDFC000123', 'Company@ybl', 1);
+INSERT INTO `admin_bank_accounts` (`account_name`, `bank_name`, `account_number`, `ifsc_code`, `upi_id`, `is_active`) VALUES ('hululu Info', 'IDFC', '909090909090', 'IDFC000123', 'Company@ybl', 1);
 
 -- API settings
 INSERT INTO `api_settings` (`provider`, `is_active`) VALUES ('yahoo_finance', 1);
-INSERT INTO `api_settings` (`provider`, `api_key`, `client_id`, `password`, `totp_secret`, `is_active`) VALUES
-('angel_one', 'BFlnbdJR', 'HSHH1260', '4267', 'KE6XVJ7AFXZJMERJ6UR4IRQJ7M', 1);
+INSERT INTO `api_settings` (`provider`, `api_key`, `client_id`, `password`, `totp_secret`, `is_active`) VALUES ('angel_one', 'BFlnbdJR', 'HSHH1260', '4267', 'KE6XVJ7AFXZJMERJ6UR4IRQJ7M', 1);
 
--- Data provider preferences
-INSERT INTO `data_provider_preferences` (`asset_type`, `provider`) VALUES
-('stocks', 'angel_one'), ('commodities', 'angel_one'), ('indices', 'angel_one'),
-('crypto', 'yahoo_finance'), ('forex', 'yahoo_finance');
+-- Data provider preferences (one per line)
+INSERT INTO `data_provider_preferences` (`asset_type`, `provider`) VALUES ('stocks', 'angel_one');
+INSERT INTO `data_provider_preferences` (`asset_type`, `provider`) VALUES ('commodities', 'angel_one');
+INSERT INTO `data_provider_preferences` (`asset_type`, `provider`) VALUES ('indices', 'angel_one');
+INSERT INTO `data_provider_preferences` (`asset_type`, `provider`) VALUES ('crypto', 'yahoo_finance');
+INSERT INTO `data_provider_preferences` (`asset_type`, `provider`) VALUES ('forex', 'yahoo_finance');
 
--- Stocks
-INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES
-('RELIANCE', 'Reliance Industries Ltd', 'NSE', 'Energy', 'ril.com', 2456.75, 0.47, 2445.30),
-('TCS', 'Tata Consultancy Services', 'NSE', 'IT Services', 'tcs.com', 3678.90, 0.37, 3665.40),
-('INFY', 'Infosys Limited', 'NSE', 'IT Services', 'infosys.com', 1567.80, 0.57, 1558.90),
-('HDFCBANK', 'HDFC Bank Limited', 'NSE', 'Banking', 'hdfcbank.com', 1678.50, 0.55, 1669.30),
-('ICICIBANK', 'ICICI Bank Limited', 'NSE', 'Banking', 'icicibank.com', 1089.40, 0.62, 1082.70),
-('SBIN', 'State Bank of India', 'NSE', 'Banking', 'sbi.co.in', 756.30, 0.85, 749.90),
-('BHARTIARTL', 'Bharti Airtel Limited', 'NSE', 'Telecom', 'airtel.in', 1234.50, 1.15, 1220.45),
-('ITC', 'ITC Limited', 'NSE', 'FMCG', 'itcportal.com', 445.20, -0.32, 446.65),
-('LT', 'Larsen & Toubro', 'NSE', 'Construction', 'larsentoubro.com', 3456.80, 0.95, 3424.30),
-('HINDUNILVR', 'Hindustan Unilever Ltd', 'NSE', 'FMCG', 'hul.co.in', 2567.90, 0.42, 2557.10),
-('^NSEI', 'Nifty 50', 'NSE', 'Index', NULL, 24850.00, 0.20, 24800.00),
-('^NSEBANK', 'Nifty Bank', 'NSE', 'Index', NULL, 53500.00, 0.19, 53400.00),
-('^BSESN', 'BSE Sensex', 'BSE', 'Index', NULL, 81500.00, 0.12, 81400.00),
-('^CNXIT', 'Nifty IT', 'NSE', 'Index', NULL, 38000.00, 0.26, 37900.00),
-('^CNXFIN', 'Nifty Financial Services', 'NSE', 'Index', NULL, 23500.00, 0.43, 23400.00),
-('^NSEMDCP100', 'Nifty Midcap 100', 'NSE', 'Index', NULL, 56000.00, 0.18, 55900.00),
-('CL=F', 'Crude Oil (WTI)', 'NYMEX', 'Commodity', NULL, 71.50, 0.42, 71.20),
-('GC=F', 'Gold', 'COMEX', 'Commodity', NULL, 2385.40, 0.31, 2378.00),
-('BTC-USD', 'Bitcoin', 'CRYPTO', 'Cryptocurrency', NULL, 43250.00, 0.00, 42800.00),
-('ETH-USD', 'Ethereum', 'CRYPTO', 'Cryptocurrency', NULL, 2285.00, 0.00, 2250.00);
+-- Stocks (one per line for Railway console)
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('RELIANCE', 'Reliance Industries Ltd', 'NSE', 'Energy', 'ril.com', 2456.75, 0.47, 2445.30);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('TCS', 'Tata Consultancy Services', 'NSE', 'IT Services', 'tcs.com', 3678.90, 0.37, 3665.40);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('INFY', 'Infosys Limited', 'NSE', 'IT Services', 'infosys.com', 1567.80, 0.57, 1558.90);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('HDFCBANK', 'HDFC Bank Limited', 'NSE', 'Banking', 'hdfcbank.com', 1678.50, 0.55, 1669.30);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('ICICIBANK', 'ICICI Bank Limited', 'NSE', 'Banking', 'icicibank.com', 1089.40, 0.62, 1082.70);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('SBIN', 'State Bank of India', 'NSE', 'Banking', 'sbi.co.in', 756.30, 0.85, 749.90);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('BHARTIARTL', 'Bharti Airtel Limited', 'NSE', 'Telecom', 'airtel.in', 1234.50, 1.15, 1220.45);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('ITC', 'ITC Limited', 'NSE', 'FMCG', 'itcportal.com', 445.20, -0.32, 446.65);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('LT', 'Larsen & Toubro', 'NSE', 'Construction', 'larsentoubro.com', 3456.80, 0.95, 3424.30);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('HINDUNILVR', 'Hindustan Unilever Ltd', 'NSE', 'FMCG', 'hul.co.in', 2567.90, 0.42, 2557.10);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('^NSEI', 'Nifty 50', 'NSE', 'Index', NULL, 24850.00, 0.20, 24800.00);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('^NSEBANK', 'Nifty Bank', 'NSE', 'Index', NULL, 53500.00, 0.19, 53400.00);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('^BSESN', 'BSE Sensex', 'BSE', 'Index', NULL, 81500.00, 0.12, 81400.00);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('^CNXIT', 'Nifty IT', 'NSE', 'Index', NULL, 38000.00, 0.26, 37900.00);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('^CNXFIN', 'Nifty Financial Services', 'NSE', 'Index', NULL, 23500.00, 0.43, 23400.00);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('^NSEMDCP100', 'Nifty Midcap 100', 'NSE', 'Index', NULL, 56000.00, 0.18, 55900.00);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('CL=F', 'Crude Oil (WTI)', 'NYMEX', 'Commodity', NULL, 71.50, 0.42, 71.20);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('GC=F', 'Gold', 'COMEX', 'Commodity', NULL, 2385.40, 0.31, 2378.00);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('BTC-USD', 'Bitcoin', 'CRYPTO', 'Cryptocurrency', NULL, 43250.00, 0.00, 42800.00);
+INSERT INTO `stocks` (`symbol`, `name`, `exchange`, `sector`, `website`, `ltp`, `change_percent`, `previous_close`) VALUES ('ETH-USD', 'Ethereum', 'CRYPTO', 'Cryptocurrency', NULL, 2285.00, 0.00, 2250.00);
 
 -- ===== VERIFY =====
 SELECT 'All tables created successfully!' AS status;
