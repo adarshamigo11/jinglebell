@@ -262,13 +262,15 @@ CREATE TABLE IF NOT EXISTS `stocks` (
 CREATE TABLE IF NOT EXISTS `stock_price_cache` (
   `stock_id` int(11) NOT NULL,
   `ltp` decimal(10,2) DEFAULT 0.00,
-  `open` decimal(10,2) DEFAULT NULL,
-  `high` decimal(10,2) DEFAULT NULL,
-  `low` decimal(10,2) DEFAULT NULL,
-  `close` decimal(10,2) DEFAULT NULL,
+  `open_price` decimal(10,2) DEFAULT NULL,
+  `high_price` decimal(10,2) DEFAULT NULL,
+  `low_price` decimal(10,2) DEFAULT NULL,
+  `close_price` decimal(10,2) DEFAULT NULL,
   `volume` bigint(20) DEFAULT NULL,
   `change_percent` decimal(5,2) DEFAULT NULL,
-  `last_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `source` varchar(50) DEFAULT 'database',
+  `is_live` tinyint(1) DEFAULT 0,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`stock_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
