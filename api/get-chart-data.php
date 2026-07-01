@@ -194,8 +194,31 @@ function fetchAngelOneChartData($settings, $yahooSymbol, $range) {
 }
 
 function getAngelSymbolToken($settings, $jwtToken, $angelSymbol, $exchange) {
-    // Search for symbol to get its token
-    // For indices, search with exact name; for stocks, use clean symbol
+    // Hardcoded index tokens (scrip search is unreliable on cloud hosting)
+    $indexTokenMap = [
+        'Nifty 50'                  => '99926000',
+        'BankNifty'                 => '99926009',
+        'NIFTY IT'                  => '99926008',
+        'NIFTY FINANCIAL SERVICES'  => '99926037',
+        'Nifty Midcap 100'          => '99926011',
+        'Nifty Smallcap 100'        => '99926027',
+        'NIFTY AUTO'                => '99926026',
+        'NIFTY PHARMA'              => '99926032',
+        'NIFTY METAL'               => '99926030',
+        'Nifty Energy'              => '99926020',
+        'Nifty PSU Bank'            => '99926025',
+        'India VIX'                 => '99926017',
+        'Sensex'                    => '99919000',
+    ];
+    
+    $upperSymbol = strtoupper($angelSymbol);
+    foreach ($indexTokenMap as $name => $token) {
+        if (strtoupper($name) === $upperSymbol) {
+            return $token;
+        }
+    }
+    
+    // Fallback to scrip search for stocks
     $searchTerm = $angelSymbol;
     $payload = json_encode([
         'searchsymbol' => $searchTerm,
@@ -227,19 +250,16 @@ function getAngelSymbolToken($settings, $jwtToken, $angelSymbol, $exchange) {
     
     $data = json_decode($response, true);
     if ($data && !empty($data['status']) && !empty($data['data'])) {
-        // Find best match by tradingsymbol
         foreach ($data['data'] as $item) {
             if (isset($item['tradingsymbol']) && strcasecmp($item['tradingsymbol'], $angelSymbol) === 0) {
                 return $item['token'] ?? '';
             }
         }
-        // Try partial match
         foreach ($data['data'] as $item) {
             if (isset($item['tradingsymbol']) && stripos($item['tradingsymbol'], $angelSymbol) !== false) {
                 return $item['token'] ?? '';
             }
         }
-        // Return first result token
         return $data['data'][0]['token'] ?? '';
     }
     
