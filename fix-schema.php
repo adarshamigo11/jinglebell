@@ -37,6 +37,10 @@ try {
     }
     
     // Add missing columns if not exist
+    // Refresh column list after renames
+    $stmt = $db->query("SHOW COLUMNS FROM stock_price_cache");
+    $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
     $additions = [
         "source" => "ALTER TABLE stock_price_cache ADD COLUMN IF NOT EXISTS `source` VARCHAR(50) DEFAULT 'database'",
         "is_live" => "ALTER TABLE stock_price_cache ADD COLUMN IF NOT EXISTS `is_live` TINYINT(1) DEFAULT 0"
