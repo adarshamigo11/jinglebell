@@ -49,8 +49,7 @@ try {
 // Find SQL files
 $sqlDir = __DIR__ . '/database/';
 $files = [
-    'if0_42133834_tradezenfy.sql',      // Main schema + data
-    'update_live_data_schema.sql',       // Schema updates
+    'databaserailway.sql',  // Railway-compatible schema + data
 ];
 
 foreach ($files as $file) {
