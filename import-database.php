@@ -64,44 +64,44 @@ foreach ($files as $file) {
     $sql = file_get_contents($path);
     echo "File size: " . number_format(strlen($sql)) . " bytes\n";
     
-    // Split by semicolons, handling multi-line statements
-    $statements = array_filter(
-        array_map('trim', explode(";\n", $sql)),
-        function($s) { return !empty($s) && !preg_match('/^\s*(--|\/\*)/', $s); }
-    );
+    // Use mysqli_multi_query to execute all statements in the file
+    $mysqli = new mysqli($host, $user, $pass, $db, $port);
+    if ($mysqli->connect_error) {
+        echo "<span class='err'>MySQLi connection failed: " . $mysqli->connect_error . "</span>\n";
+        continue;
+    }
     
-    echo "Found " . count($statements) . " statements\n";
-    
-    $success = 0;
-    $errors = 0;
-    
-    foreach ($statements as $stmt) {
-        $stmt = trim($stmt);
-        if (empty($stmt)) continue;
-        
-        try {
-            $pdo->exec($stmt);
-            $success++;
-        } catch (PDOException $e) {
-            $msg = $e->getMessage();
-            // Ignore "already exists" and "duplicate" errors
-            if (strpos($msg, 'already exists') !== false || 
-                strpos($msg, 'Duplicate') !== false ||
-                strpos($msg, '1061') !== false) {
-                $success++;
-            } else {
+    if ($mysqli->multi_query($sql)) {
+        $success = 0;
+        $errors = 0;
+        do {
+            if ($mysqli->errno) {
                 $errors++;
                 if ($errors <= 5) {
-                    $short = substr($stmt, 0, 80);
-                    echo "<span class='err'>  Error: {$msg}</span>\n";
-                    echo "  Statement: {$short}...\n";
+                    echo "<span class='err'>  Error: " . $mysqli->error . "</span>\n";
                 }
+            } else {
+                $success++;
             }
-        }
+            if ($result = $mysqli->store_result()) {
+                $result->free();
+            }
+        } while ($mysqli->more_results() && $mysqli->next_result());
+    } else {
+        echo "<span class='err'>Import failed: " . $mysqli->error . "</span>\n";
+        $mysqli->close();
+        continue;
     }
     
     echo "<span class='ok'>Done: {$success} succeeded, {$errors} errors</span>\n";
+    $mysqli->close();
 }
+
+// Reconnect with PDO for verification
+$pdo = new PDO("mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4", $user, $pass, [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true
+]);
 
 // Verify tables
 echo "\n--- Verification ---\n";
