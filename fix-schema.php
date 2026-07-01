@@ -42,8 +42,8 @@ try {
     $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
     $additions = [
-        "source" => "ALTER TABLE stock_price_cache ADD COLUMN IF NOT EXISTS `source` VARCHAR(50) DEFAULT 'database'",
-        "is_live" => "ALTER TABLE stock_price_cache ADD COLUMN IF NOT EXISTS `is_live` TINYINT(1) DEFAULT 0"
+        "source" => "ALTER TABLE stock_price_cache ADD COLUMN `source` VARCHAR(50) DEFAULT 'database'",
+        "is_live" => "ALTER TABLE stock_price_cache ADD COLUMN `is_live` TINYINT(1) DEFAULT 0"
     ];
     
     foreach ($additions as $col => $sql) {
