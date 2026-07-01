@@ -28,6 +28,21 @@ $reverseMap = array_flip($indexNames);
 $symbol = $reverseMap[$rawSymbol] ?? $rawSymbol;
 $indexName = $indexNames[$symbol] ?? $rawSymbol;
 
+// TradingView symbol mapping
+$tvSymbols = [
+    '^NSEI'         => 'NSE:NIFTY',
+    '^NSEBANK'      => 'NSE:BANKNIFTY',
+    '^BSESN'        => 'BSE:SENSEX',
+    '^CNXIT'        => 'NSE:CNXIT',
+    '^CNXFIN'       => 'NSE:CNXFIN',
+    '^NSEMDCP100'   => 'NSE:NIFTYMIDCAP100',
+    '^NSESMLCP100'  => 'NSE:NIFTYSMLCAP100',
+    '^CNXAUTO'      => 'NSE:CNXAUTO',
+    '^CNXPHARMA'    => 'NSE:CNXPHARMA',
+    '^CNXMETAL'     => 'NSE:CNXMETAL',
+];
+$tvSymbol = $tvSymbols[$symbol] ?? $symbol;
+
 // Get stock_id for this index from DB
 $stockStmt = $db->prepare("SELECT id, symbol, name, exchange, ltp, previous_close, sector FROM stocks WHERE symbol = ? AND is_active = 1");
 $stockStmt->execute([$symbol]);
@@ -290,7 +305,7 @@ canvas { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale
         
         <!-- Chart Container -->
         <div class="chart-container" style="height: 400px; position: relative; background: #FFFFFF;">
-          <canvas id="indexChart"></canvas>
+          <div id="tradingview_chart" style="width:100%;height:100%;"></div>
         </div>
         
         <!-- OHLC Stats Below Chart -->
@@ -440,6 +455,7 @@ const INDEX_SYMBOL = '<?= $symbol ?>';
 const INDEX_DISPLAY = '<?= $rawSymbol ?>';
 const INDEX_STOCK_ID = <?= $indexStockId ?>;
 const INDEX_LTP = <?= $ltp ?>;
+const TV_SYMBOL = '<?= $tvSymbol ?>';
 let currentRange = '1M';
 let currentOrderType = 'BUY';
 
@@ -588,130 +604,53 @@ async function loadIndexData() {
   }
 }
 
-// ── Load chart ──
-async function loadChart(range) {
+// ── Load TradingView chart ──
+let tvWidget = null;
+
+function getTVInterval(range) {
+  const map = { '1D': '15', '5D': '60', '1M': 'D', '6M': 'D', '1Y': 'W', '5Y': 'M' };
+  return map[range] || 'D';
+}
+
+function loadChart(range) {
   currentRange = range;
   document.querySelectorAll('.time-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.range === range);
   });
-  
-  try {
-    const res = await fetch('api/get-chart-data.php?symbol=' + encodeURIComponent(INDEX_SYMBOL) + '&range=' + range);
-    const data = await res.json();
-    
-    if (data.success && data.data) {
-      renderChart(data.data, data.isPositive);
-    } else {
-      const container = document.querySelector('.chart-container');
-      const msg = data.error || 'Chart data unavailable';
-      container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--groww-text-secondary);font-size:14px;gap:8px;"><i class="fa fa-chart-line" style="font-size:32px;opacity:0.5;"></i><span>' + msg + '</span></div>';
-    }
-  } catch (e) {
-    console.error('Error loading chart:', e);
+
+  const container = document.getElementById('tradingview_chart');
+  container.innerHTML = '';
+
+  if (!TV_SYMBOL || TV_SYMBOL === INDEX_SYMBOL) {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--groww-text-secondary);">Chart not available for this symbol</div>';
+    return;
   }
+
+  tvWidget = new TradingView.widget({
+    width: '100%',
+    height: '100%',
+    symbol: TV_SYMBOL,
+    interval: getTVInterval(range),
+    timezone: 'Asia/Kolkata',
+    theme: 'light',
+    style: '1',
+    locale: 'in',
+    toolbar_bg: '#f1f3f6',
+    enable_publishing: false,
+    hide_top_toolbar: false,
+    hide_side_toolbar: true,
+    save_image: false,
+    container_id: 'tradingview_chart',
+    disabled_features: ['use_localstorage_for_settings'],
+    overrides: {
+      "mainSeriesProperties.candleStyle.upColor": "#00D09C",
+      "mainSeriesProperties.candleStyle.downColor": "#FF4D4D"
+    }
+  });
 }
 
 function renderChart(prices, isPositive) {
-  const canvas = document.getElementById('indexChart');
-  const ctx = canvas.getContext('2d');
-  const rect = canvas.parentElement.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  canvas.style.width = rect.width + 'px';
-  canvas.style.height = rect.height + 'px';
-  ctx.scale(dpr, dpr);
-  
-  const width = rect.width;
-  const height = rect.height;
-  const padding = { top: 15, right: 10, bottom: 35, left: 55 };
-  const chartW = width - padding.left - padding.right;
-  const chartH = height - padding.top - padding.bottom;
-  
-  ctx.clearRect(0, 0, width, height);
-  
-  const validPrices = prices.filter(p => p && p.close !== null && p.close !== undefined);
-  if (validPrices.length === 0) return;
-  
-  const values = validPrices.map(p => p.close);
-  const minV = Math.min(...values);
-  const maxV = Math.max(...values);
-  const priceRange = maxV - minV || 1;
-  
-  // Grid lines
-  ctx.strokeStyle = '#F0F0F0';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = padding.top + (chartH * i / 4);
-    ctx.beginPath();
-    ctx.moveTo(padding.left, y);
-    ctx.lineTo(width - padding.right, y);
-    ctx.stroke();
-    
-    const price = maxV - (priceRange * i / 4);
-    ctx.fillStyle = '#6B7280';
-    ctx.font = '11px -apple-system, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    
-    let priceLabel;
-    if (price >= 10000) priceLabel = '₹' + (price / 1000).toFixed(1) + 'K';
-    else if (price >= 1000) priceLabel = '₹' + price.toFixed(0);
-    else if (price >= 100) priceLabel = '₹' + price.toFixed(1);
-    else priceLabel = '₹' + price.toFixed(2);
-    
-    ctx.fillText(priceLabel, padding.left - 8, y);
-  }
-  
-  // Chart line - matching stock-detail colors
-  const color = isPositive ? '#00D09C' : '#FF4D4D';
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  
-  validPrices.forEach((p, i) => {
-    const x = padding.left + (i / (validPrices.length - 1)) * chartW;
-    const y = padding.top + chartH * (1 - (p.close - minV) / priceRange);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-  
-  // Gradient fill
-  const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
-  gradient.addColorStop(0, isPositive ? 'rgba(0, 208, 156, 0.2)' : 'rgba(255, 77, 77, 0.2)');
-  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-  
-  ctx.lineTo(padding.left + chartW, height - padding.bottom);
-  ctx.lineTo(padding.left, height - padding.bottom);
-  ctx.closePath();
-  ctx.fillStyle = gradient;
-  ctx.fill();
-  
-  // Time labels
-  ctx.fillStyle = '#6B7280';
-  ctx.font = '11px -apple-system, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  
-  const labelCount = Math.min(4, validPrices.length);
-  const step = Math.floor(validPrices.length / labelCount);
-  for (let i = 0; i < validPrices.length; i += step) {
-    const x = padding.left + (i / (validPrices.length - 1)) * chartW;
-    const d = new Date(validPrices[i].timestamp * 1000);
-    let label;
-    if (currentRange === '1D' || currentRange === '5D') {
-      label = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    } else if (currentRange === '1M' || currentRange === '6M') {
-      label = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-    } else {
-      label = d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
-    }
-    ctx.fillText(label, x, height - padding.bottom + 8);
-  }
+  // Kept for compatibility; TradingView handles rendering
 }
 
 // Init
@@ -725,6 +664,7 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(() => loadChart(currentRange), 250);
 });
 </script>
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
 </body>
 </html>

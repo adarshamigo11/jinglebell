@@ -46,6 +46,7 @@ $chg    = (float)$stock['change_pct'];
 $chgVal = round($ltp - $prev, 2);
 $isPos  = $chg >= 0;
 $symbol = $stock['symbol']; // Add symbol variable
+$tvSymbol = $stock['exchange'] === 'BSE' ? 'BSE:' . $symbol : 'NSE:' . $symbol;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -450,7 +451,7 @@ canvas {
         
         <!-- Chart Container - Full Width -->
         <div style="height: 400px; position: relative; background: #FFFFFF;">
-          <canvas id="stockChart"></canvas>
+          <div id="tradingview_chart" style="width:100%;height:100%;"></div>
           <div id="chart-tooltip" style="display: none; position: absolute; background: rgba(0,0,0,0.85); color: white; padding: 8px 12px; border-radius: 8px; font-size: 13px; pointer-events: none; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"></div>
         </div>
         
@@ -578,6 +579,7 @@ canvas {
 let currentOrderType = 'BUY';
 const STOCK_ID     = <?= $stockId ?>;
 const SYMBOL       = '<?= $stock['symbol'] ?>';
+const TV_SYMBOL    = '<?= $tvSymbol ?>';
 
 // ── Live Price (Yahoo Finance - Free, 15-20 min delayed) ──
 YahooFinanceAPI.init();
@@ -707,397 +709,71 @@ function showErr(msg) {
 calcTotal();
 updateMode();
 
-// ── Yahoo Finance Chart ──────────────────────────────
-const stockSymbol = '<?= $symbol ?>';
-const stockExchange = '<?= strtoupper($stock['exchange']) ?>';
-
-// Convert to Yahoo Finance format
-const yahooSymbol = stockExchange === 'NSE' ? stockSymbol + '.NS' : stockSymbol + '.BO';
-
+// ── TradingView Chart ──────────────────────────────
 let currentRange = 'ALL';
+let tvWidget = null;
 
-console.log('Stock Detail Chart Init:', {
-  symbol: stockSymbol,
-  exchange: stockExchange,
-  yahooSymbol: yahooSymbol
-});
-
-// Initialize chart when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing chart...');
-    loadChartData('ALL');
-  });
-} else {
-  console.log('DOM already loaded, initializing chart...');
-  loadChartData('ALL');
+function getTVInterval(range) {
+  const map = { '1D': '15', '5D': '60', '1M': 'D', '6M': 'D', '1Y': 'W', '5Y': 'M', 'ALL': 'M' };
+  return map[range] || 'D';
 }
 
-// Load chart data for selected time range
-async function loadChartData(range) {
-  console.log('loadChartData called with range:', range);
-  console.log('Symbol:', yahooSymbol);
-  
+function loadChartData(range) {
   currentRange = range;
-  
-  // Update active button
   document.querySelectorAll('.time-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.range === range);
   });
-  
-  // Use unified chart endpoint (Angel One + Yahoo fallback)
-  const url = `api/get-chart-data.php?symbol=${encodeURIComponent(yahooSymbol)}&range=${range}`;
-  
-  console.log('Fetching from:', url);
-  
-  // Show loading state
-  const canvas = document.getElementById('stockChart');
-  if (!canvas) { console.error('Canvas element not found!'); return; }
-  
-  const ctx = canvas.getContext('2d');
-  const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width - 40;
-  canvas.height = rect.height - 40;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#6B7280';
-  ctx.font = '14px -apple-system, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('Loading chart data...', canvas.width/2, canvas.height/2);
-  
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    console.log('Chart response:', data);
-    
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to fetch data');
-    }
-    
-    // Update price display from meta
-    const currentPrice = data.meta.currentPrice;
-    const previousClose = data.meta.previousClose;
-    const change = data.meta.change;
-    const changePercent = data.meta.changePercent;
-    
-    document.getElementById('chart-price').textContent = '₹' + currentPrice.toFixed(2);
-    
-    const changeEl = document.getElementById('chart-change');
-    changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(2) + ' (' + (changePercent >= 0 ? '+' : '') + changePercent.toFixed(2) + '%)';
-    changeEl.style.color = change >= 0 ? 'var(--groww-green)' : 'var(--groww-red)';
-    
-    // Update date
-    const lastPoint = data.data[data.data.length - 1];
-    const lastDate = new Date(lastPoint.timestamp * 1000);
-    document.getElementById('chart-date').textContent = lastDate.toLocaleDateString('en-IN', { 
-      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    }) + ' IST';
-    
-    // Update OHLC stats
-    const lastOpen = data.data[data.data.length - 1].open || currentPrice;
-    const periodHigh = data.meta.periodHigh;
-    const periodLow = data.meta.periodLow;
-    
-    document.getElementById('stat-open').textContent = '₹' + lastOpen.toFixed(2);
-    document.getElementById('stat-high').textContent = '₹' + periodHigh.toFixed(2);
-    document.getElementById('stat-low').textContent = '₹' + periodLow.toFixed(2);
-    
-    // Prepare chart data
-    const chartData = data.data
-      .filter(d => d.close !== null && d.close > 0)
-      .map(d => ({ x: new Date(d.timestamp * 1000), y: d.close }));
-    
-    if (chartData.length < 2) {
-      throw new Error('Insufficient data for chart');
-    }
-    
-    // Render chart
-    renderChart(chartData, change >= 0);
-    
-  } catch (error) {
-    console.error('Error fetching chart data:', error);
-    
-    const canvas = document.getElementById('stockChart');
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.parentElement.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
-    
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, rect.width, rect.height);
-    
-    ctx.fillStyle = '#FF4D4D';
-    ctx.font = '14px -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Error: ' + error.message, canvas.width/2, canvas.height/2 - 10);
-    ctx.fillStyle = '#6B7280';
-    ctx.font = '12px -apple-system, sans-serif';
-    ctx.fillText('Try a different time range', canvas.width/2, canvas.height/2 + 15);
-    
-    document.getElementById('chart-date').textContent = 'Error loading data';
+
+  const container = document.getElementById('tradingview_chart');
+  container.innerHTML = '';
+
+  if (!TV_SYMBOL) {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--groww-text-secondary);">Chart not available</div>';
+    return;
   }
+
+  tvWidget = new TradingView.widget({
+    width: '100%',
+    height: '100%',
+    symbol: TV_SYMBOL,
+    interval: getTVInterval(range),
+    timezone: 'Asia/Kolkata',
+    theme: 'light',
+    style: '1',
+    locale: 'in',
+    toolbar_bg: '#f1f3f6',
+    enable_publishing: false,
+    hide_top_toolbar: false,
+    hide_side_toolbar: true,
+    save_image: false,
+    container_id: 'tradingview_chart',
+    disabled_features: ['use_localstorage_for_settings'],
+    overrides: {
+      "mainSeriesProperties.candleStyle.upColor": "#00D09C",
+      "mainSeriesProperties.candleStyle.downColor": "#FF4D4D"
+    }
+  });
 }
 
-// Render chart using Canvas API - Google Finance Style
 function renderChart(data, isPositive) {
-  const canvas = document.getElementById('stockChart');
-  const ctx = canvas.getContext('2d');
-  
-  // Set canvas size with device pixel ratio for crisp rendering
-  const rect = canvas.parentElement.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  canvas.style.width = rect.width + 'px';
-  canvas.style.height = rect.height + 'px';
-  
-  ctx.scale(dpr, dpr);
-  
-  const width = rect.width;
-  const height = rect.height;
-  
-  // Clear canvas
-  ctx.clearRect(0, 0, width, height);
-  
-  if (data.length === 0) return;
-  
-  // Calculate min/max for scaling
-  const prices = data.map(d => d.y);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const priceRange = maxPrice - minPrice || 1;
-  
-  // Full width chart - minimal padding
-  const padding = { top: 15, right: 10, bottom: 35, left: 55 };
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
-  
-  // Draw grid lines - lighter for clean look
-  ctx.strokeStyle = '#F0F0F0';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = padding.top + (chartHeight * i / 4);
-    ctx.beginPath();
-    ctx.moveTo(padding.left, y);
-    ctx.lineTo(width - padding.right, y);
-    ctx.stroke();
-    
-    // Price labels - clean formatting
-    const price = maxPrice - (priceRange * i / 4);
-    ctx.fillStyle = '#6B7280';
-    ctx.font = window.innerWidth <= 768 ? '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : '11px -apple-system, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    
-    // Smart price formatting
-    let priceLabel;
-    if (price >= 10000) {
-      priceLabel = '₹' + (price / 1000).toFixed(1) + 'K';
-    } else if (price >= 1000) {
-      priceLabel = '₹' + price.toFixed(0);
-    } else if (price >= 100) {
-      priceLabel = '₹' + price.toFixed(1);
-    } else {
-      priceLabel = '₹' + price.toFixed(2);
-    }
-    
-    ctx.fillText(priceLabel, padding.left - 8, y);
-  }
-  
-  // Draw previous close line
-  const prevClose = parseFloat('<?= $stock['previous_close'] ?>');
-  const prevCloseY = padding.top + chartHeight * (1 - (prevClose - minPrice) / priceRange);
-  ctx.strokeStyle = '#9CA3AF';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([5, 5]);
-  ctx.beginPath();
-  ctx.moveTo(padding.left, prevCloseY);
-  ctx.lineTo(width - padding.right, prevCloseY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  
-  // Draw chart line
-  const color = isPositive ? '#00D09C' : '#FF4D4D';
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  
-  ctx.beginPath();
-  data.forEach((point, i) => {
-    const x = padding.left + (i / (data.length - 1)) * chartWidth;
-    const y = padding.top + chartHeight * (1 - (point.y - minPrice) / priceRange);
-    
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-  
-  // Fill gradient under line
-  const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
-  gradient.addColorStop(0, isPositive ? 'rgba(0, 208, 156, 0.2)' : 'rgba(255, 77, 77, 0.2)');
-  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-  
-  ctx.lineTo(padding.left + chartWidth, height - padding.bottom);
-  ctx.lineTo(padding.left, height - padding.bottom);
-  ctx.closePath();
-  ctx.fillStyle = gradient;
-  ctx.fill();
-  
-  // Draw time labels - Clean Google Finance style
-  ctx.fillStyle = '#6B7280';
-  ctx.font = window.innerWidth <= 768 ? '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' : '11px -apple-system, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  
-  // Show only 3-4 labels to prevent overlap
-  const labelCount = Math.min(4, data.length);
-  const step = Math.floor(data.length / labelCount);
-  
-  for (let i = 0; i < data.length; i += step) {
-    const x = padding.left + (i / (data.length - 1)) * chartWidth;
-    const date = data[i].x;
-    let label;
-    
-    // Smart date formatting based on range
-    if (currentRange === '1D' || currentRange === '5D') {
-      label = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    } else if (currentRange === '1M') {
-      label = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-    } else if (currentRange === '6M' || currentRange === '1Y') {
-      label = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
-    } else {
-      label = date.toLocaleDateString('en-IN', { year: 'numeric' });
-    }
-    
-    ctx.fillText(label, x, height - padding.bottom + 8);
-  }
-  
-  // Add hover/touch interaction with crosshair pointer
-  let lastIndex = -1;
-  
-  function drawCrosshair(index) {
-    // Redraw chart first
-    renderChart(data, isPositive);
-    
-    if (index < 0 || index >= data.length) return;
-    
-    const point = data[index];
-    const x = padding.left + (index / (data.length - 1)) * chartWidth;
-    const y = padding.top + chartHeight * (1 - (point.y - minPrice) / priceRange);
-    
-    // Draw vertical dashed line
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(x, padding.top);
-    ctx.lineTo(x, height - padding.bottom);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
-    // Draw horizontal dashed line
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(padding.left, y);
-    ctx.lineTo(width - padding.right, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
-    // Draw dot on the line
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    ctx.fillStyle = isPositive ? '#00D09C' : '#FF4D4D';
-    ctx.fill();
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // Update tooltip
-    const tooltip = document.getElementById('chart-tooltip');
-    const change = point.y - data[0].y;
-    const changePercent = (change / data[0].y) * 100;
-    
-    let dateLabel;
-    if (currentRange === '1D' || currentRange === '5D') {
-      dateLabel = point.x.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', ' + 
-                  point.x.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    } else {
-      dateLabel = point.x.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-    
-    tooltip.innerHTML = `
-      <div style="font-weight: 600; margin-bottom: 4px;">₹${point.y.toFixed(2)}</div>
-      <div style="font-size: 11px; opacity: 0.9;">${dateLabel}</div>
-      <div style="font-size: 11px; margin-top: 4px; color: ${change >= 0 ? '#00D09C' : '#FF4D4D'};">
-        ${change >= 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%)
-      </div>
-    `;
-    
-    // Position tooltip
-    const tooltipX = x > width / 2 ? x - 160 : x + 20;
-    const tooltipY = y < 100 ? y + 20 : y - 80;
-    
-    tooltip.style.display = 'block';
-    tooltip.style.left = tooltipX + 'px';
-    tooltip.style.top = tooltipY + 'px';
-  }
-  
-  // Mouse move handler
-  canvas.onmousemove = function(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const index = Math.round(((x - padding.left) / chartWidth) * (data.length - 1));
-    
-    if (index >= 0 && index < data.length && index !== lastIndex) {
-      lastIndex = index;
-      drawCrosshair(index);
-    }
-  };
-  
-  // Touch handler for mobile
-  canvas.ontouchmove = function(e) {
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    const x = touch.clientX - rect.left;
-    const index = Math.round(((x - padding.left) / chartWidth) * (data.length - 1));
-    
-    if (index >= 0 && index < data.length && index !== lastIndex) {
-      lastIndex = index;
-      drawCrosshair(index);
-    }
-  };
-  
-  canvas.ontouchend = function() {
-    document.getElementById('chart-tooltip').style.display = 'none';
-    lastIndex = -1;
-    // Redraw chart without crosshair
-    renderChart(data, isPositive);
-  };
-  
-  canvas.onmouseleave = function() {
-    document.getElementById('chart-tooltip').style.display = 'none';
-    lastIndex = -1;
-    // Redraw chart without crosshair
-    renderChart(data, isPositive);
-  };
+  // Kept for compatibility; TradingView handles rendering
+}
+
+// Initialize chart when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => loadChartData('ALL'));
+} else {
+  loadChartData('ALL');
 }
 
 // Handle window resize with debounce
 let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    loadChartData(currentRange);
-  }, 250); // Wait 250ms after resize stops
+  resizeTimer = setTimeout(() => loadChartData(currentRange), 250);
 });
 </script>
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
 </body>
 </html>
