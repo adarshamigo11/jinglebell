@@ -46,7 +46,8 @@ $chg    = (float)$stock['change_pct'];
 $chgVal = round($ltp - $prev, 2);
 $isPos  = $chg >= 0;
 $symbol = $stock['symbol']; // Add symbol variable
-$tvSymbol = $stock['exchange'] === 'BSE' ? 'BSE:' . $symbol : 'NSE:' . $symbol;
+$exchange = strtoupper(trim($stock['exchange'] ?? 'NSE'));
+$tvSymbol = ($exchange === 'BSE' ? 'BSE:' : 'NSE:') . $symbol;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -578,8 +579,9 @@ canvas {
 <script>
 let currentOrderType = 'BUY';
 const STOCK_ID     = <?= $stockId ?>;
-const SYMBOL       = '<?= $stock['symbol'] ?>';
-const TV_SYMBOL    = '<?= $tvSymbol ?>';
+const SYMBOL       = <?= json_encode($symbol) ?>;
+const TV_SYMBOL    = <?= json_encode($tvSymbol) ?>;
+console.log('TV Symbol:', TV_SYMBOL);
 
 // ── Live Price (Yahoo Finance - Free, 15-20 min delayed) ──
 YahooFinanceAPI.init();

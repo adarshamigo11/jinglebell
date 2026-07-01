@@ -451,11 +451,12 @@ canvas { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale
 </div>
 
 <script>
-const INDEX_SYMBOL = '<?= $symbol ?>';
-const INDEX_DISPLAY = '<?= $rawSymbol ?>';
+const INDEX_SYMBOL = <?= json_encode($symbol) ?>;
+const INDEX_DISPLAY = <?= json_encode($rawSymbol) ?>;
 const INDEX_STOCK_ID = <?= $indexStockId ?>;
 const INDEX_LTP = <?= $ltp ?>;
-const TV_SYMBOL = '<?= $tvSymbol ?>';
+const TV_SYMBOL = <?= json_encode($tvSymbol) ?>;
+console.log('TV Symbol:', TV_SYMBOL);
 let currentRange = '1M';
 let currentOrderType = 'BUY';
 
