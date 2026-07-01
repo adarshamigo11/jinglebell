@@ -83,11 +83,40 @@ try {
         $exchange = ($stock['exchange'] === 'BSE') ? 'BSE' : 'NSE';
         $cleanSymbol = preg_replace('/\.(NS|BO|MF)$/i', '', $symbol);
         
-        $key = $exchange . ':' . $cleanSymbol;
-        if (isset($tokenMap[$key])) {
-            $results[$symbol] = $tokenMap[$key];
-        } else {
+        // Try different symbol formats
+        $keysToTry = [
+            $exchange . ':' . $cleanSymbol,           // NSE:RELIANCE
+            $exchange . ':' . $cleanSymbol . '-EQ',   // NSE:RELIANCE-EQ
+            $exchange . ':' . $cleanSymbol . '-BE',   // NSE:RELIANCE-BE
+            'NFO:' . $cleanSymbol,
+            'CDS:' . $cleanSymbol,
+            'MCX:' . $cleanSymbol,
+            'BFO:' . $cleanSymbol,
+        ];
+        
+        $found = false;
+        foreach ($keysToTry as $key) {
+            if (isset($tokenMap[$key])) {
+                $results[$symbol] = $tokenMap[$key];
+                $results[$symbol]['matched_key'] = $key;
+                $found = true;
+                break;
+            }
+        }
+        
+        if (!$found) {
             $results[$symbol] = null;
+        }
+    }
+
+    // Also show sample entries from master for debugging
+    $samples = [];
+    $count = 0;
+    foreach ($tokenMap as $key => $value) {
+        if (strpos($key, 'NSE:RELIANCE') !== false || strpos($key, 'NSE:TCS') !== false) {
+            $samples[$key] = $value;
+            $count++;
+            if ($count >= 10) break;
         }
     }
 
@@ -95,6 +124,7 @@ try {
         'success' => true,
         'master_count' => count($master),
         'matched' => count(array_filter($results)),
+        'samples' => $samples,
         'tokens' => $results
     ], JSON_PRETTY_PRINT);
 
