@@ -5,6 +5,8 @@
  */
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+ini_set('memory_limit', '512M');
+set_time_limit(120);
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../config.php';
@@ -20,21 +22,34 @@ try {
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_TIMEOUT => 60,
-        CURLOPT_SSL_VERIFYPEER => false
+        CURLOPT_TIMEOUT => 90,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_HTTPHEADER => ['User-Agent: Mozilla/5.0']
     ]);
     $json = curl_exec($ch);
     $err = curl_error($ch);
+    $info = curl_getinfo($ch);
     curl_close($ch);
 
     if ($err || !$json) {
-        echo json_encode(['success' => false, 'error' => 'Failed to download master file: ' . $err]);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to download master file',
+            'curl_error' => $err,
+            'http_code' => $info['http_code'],
+            'size' => strlen($json)
+        ]);
         exit;
     }
 
     $master = json_decode($json, true);
     if (!$master) {
-        echo json_encode(['success' => false, 'error' => 'Failed to parse master file']);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Failed to parse master file',
+            'json_sample' => substr($json, 0, 200),
+            'size' => strlen($json)
+        ]);
         exit;
     }
 
@@ -49,7 +64,6 @@ try {
         
         if (!$token) continue;
         
-        // Index by exchange + symbol
         $tokenMap[$exch . ':' . $symbol] = [
             'token' => $token,
             'tradingsymbol' => $tradingsymbol,
@@ -85,6 +99,6 @@ try {
     ], JSON_PRETTY_PRINT);
 
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
 }
 ?>
