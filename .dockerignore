@@ -6,7 +6,7 @@
 *.zip
 *.bak
 *.jpg
-database/*.sql
+# database/*.sql  -- temporarily enabled for import
 uploads/payments/*
 uploads/qr-codes/*
 api/debug-angel-one.php
