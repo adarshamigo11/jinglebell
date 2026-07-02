@@ -1,10 +1,9 @@
 <?php
 /**
- * Get Live Option Chain from Angel One
- * Returns option chain for a given underlying symbol
+ * Get Option Chain - Returns option chain from stored contracts with live Angel One prices
  */
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+error_reporting(0);
+ini_set('display_errors', 0);
 
 require_once __DIR__ . '/../config.php';
 header('Content-Type: application/json');
@@ -18,136 +17,196 @@ if (!$symbol) {
     exit;
 }
 
-// Underlying token map (same as stocks)
-$STOCK_TOKEN_MAP = [
-    'RELIANCE'   => ['token' => '2885',  'exchange' => 'NSE'],
-    'TCS'        => ['token' => '11536', 'exchange' => 'NSE'],
-    'INFY'       => ['token' => '1594',  'exchange' => 'NSE'],
-    'HDFCBANK'   => ['token' => '1333',  'exchange' => 'NSE'],
-    'ICICIBANK'  => ['token' => '4963',  'exchange' => 'NSE'],
-    'SBIN'       => ['token' => '3045',  'exchange' => 'NSE'],
-    'BHARTIARTL' => ['token' => '10604', 'exchange' => 'NSE'],
-    'ITC'        => ['token' => '1660',  'exchange' => 'NSE'],
-    'LT'         => ['token' => '11483', 'exchange' => 'NSE'],
-    'HINDUNILVR' => ['token' => '1394',  'exchange' => 'NSE'],
-    'NIFTY'      => ['token' => '99926000', 'exchange' => 'NSE'],
-    'BANKNIFTY'  => ['token' => '99926009', 'exchange' => 'NSE'],
-];
-
-if (!isset($STOCK_TOKEN_MAP[$symbol])) {
-    echo json_encode(['success' => false, 'error' => 'Symbol not supported']);
-    exit;
-}
-
-$und = $STOCK_TOKEN_MAP[$symbol];
-
 try {
     $db = getDB();
-    $settingsStmt = $db->query("SELECT * FROM api_settings WHERE provider = 'angel_one' AND is_active = 1 LIMIT 1");
-    $settings = $settingsStmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$settings || empty($settings['api_key']) || empty($settings['client_id']) || empty($settings['password'])) {
-        echo json_encode(['success' => false, 'error' => 'Angel One credentials not configured']);
+    // Get distinct expiry dates for this symbol
+    $expStmt = $db->prepare("SELECT DISTINCT expiry_date FROM fno_contracts WHERE symbol = ? AND contract_type IN ('CALL', 'PUT') ORDER BY expiry_date");
+    $expStmt->execute([$symbol]);
+    $expiryDates = $expStmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    if (empty($expiryDates)) {
+        echo json_encode(['success' => false, 'error' => 'No option contracts found. Run discover-fno-tokens.php first.']);
         exit;
     }
     
-    $jwtToken = angelOneLogin($settings);
-    if (!$jwtToken) {
-        echo json_encode(['success' => false, 'error' => 'Angel One login failed']);
+    if (!$expiry) $expiry = $expiryDates[0];
+    
+    // Get options for this symbol and expiry
+    $stmt = $db->prepare("
+        SELECT id, symbol, contract_type, strike_price, expiry_date, lot_size, token, exchange,
+               current_price, previous_close, change_percent, high_price, low_price, volume, open_interest
+        FROM fno_contracts
+        WHERE symbol = ? AND expiry_date = ? AND contract_type IN ('CALL', 'PUT') AND token IS NOT NULL
+        ORDER BY strike_price, contract_type DESC
+    ");
+    $stmt->execute([$symbol, $expiry]);
+    $options = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    if (empty($options)) {
+        echo json_encode(['success' => false, 'error' => 'No options for selected expiry']);
         exit;
     }
     
-    // Fetch option chain from Angel One
-    $url = 'https://apiconnect.angelone.in/rest/secure/angelbroking/market/v1/option-chain';
-    $payload = json_encode([
-        'exchange' => $und['exchange'],
-        'tradingsymbol' => $symbol,
-        'symboltoken' => $und['token']
-    ]);
+    // Try to fetch live prices from Angel One
+    $source = 'database';
+    $liveData = [];
+    try {
+        $settingsStmt = $db->query("SELECT * FROM api_settings WHERE provider = 'angel_one' AND is_active = 1 LIMIT 1");
+        $settings = $settingsStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($settings && !empty($settings['api_key']) && !empty($settings['client_id']) && !empty($settings['password'])) {
+            $liveData = fetchAngelOneOptionQuotes($settings, $options);
+            if (!empty($liveData)) $source = 'angel_one';
+        }
+    } catch (Exception $e) { /* silent fallback */ }
     
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json', 'Accept: application/json',
-        'X-UserType: USER', 'X-SourceID: WEB',
-        'X-ClientLocalIP: CLIENT_LOCAL_IP', 'X-ClientPublicIP: CLIENT_PUBLIC_IP',
-        'X-MACAddress: MAC_ADDRESS', 'X-PrivateKey: ' . $settings['api_key'],
-        'Authorization: Bearer ' . $jwtToken
-    ]);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    $data = json_decode($response, true);
-    
-    if ($httpCode !== 200 || !$data || empty($data['data'])) {
-        echo json_encode([
-            'success' => false,
-            'error' => 'Failed to fetch option chain',
-            'http_code' => $httpCode,
-            'response' => $data
-        ]);
-        exit;
-    }
-    
-    // Process option chain
-    $chain = $data['data'];
-    $expiryDates = [];
+    // Group by strike
     $strikes = [];
+    $spotPrice = 0;
     
-    foreach ($chain as $opt) {
-        $expiryDate = $opt['expiry'] ?? '';
-        if (!$expiryDate) continue;
+    foreach ($options as $opt) {
+        $id = (int)$opt['id'];
+        $type = $opt['contract_type']; // CALL or PUT
+        $strike = (float)$opt['strike_price'];
         
-        // Convert expiry format 28JUL2026 -> 2026-07-28
-        $dt = DateTime::createFromFormat('dMY', $expiryDate);
-        $formattedExpiry = $dt ? $dt->format('Y-m-d') : $expiryDate;
-        
-        $expiryDates[$formattedExpiry] = true;
-        if ($expiry && $formattedExpiry !== $expiry) continue;
-        
-        $strike = (float)($opt['strike'] ?? 0);
-        if ($strike <= 0) continue;
-        // Strike comes scaled by 100 in some cases
-        if ($strike > 100000) $strike = $strike / 100;
-        
-        if (!isset($strikes[$strike])) {
-            $strikes[$strike] = ['strike' => $strike, 'CALL' => null, 'PUT' => null];
+        if (isset($liveData[$id])) {
+            $live = $liveData[$id];
+            $ltp = round((float)$live['ltp'], 2);
+            $change = round((float)($live['change'] ?? 0), 2);
+            $changePct = round((float)($live['change_percent'] ?? 0), 2);
+            $volume = (int)($live['volume'] ?? 0);
+            $oi = (int)($live['oi'] ?? 0);
+            $bid = round((float)($live['bid'] ?? 0), 2);
+            $ask = round((float)($live['ask'] ?? 0), 2);
+            $isLive = true;
+            
+            // Update cache
+            try {
+                $upd = $db->prepare("
+                    UPDATE fno_contracts SET
+                        current_price = ?, change_percent = ?, volume = ?, open_interest = ?, updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $upd->execute([$ltp, $changePct, $volume, $oi, $id]);
+            } catch (Exception $e) { /* silent */ }
+        } else {
+            $ltp = round((float)$opt['current_price'], 2);
+            $change = 0;
+            $changePct = round((float)$opt['change_percent'], 2);
+            $volume = (int)$opt['volume'];
+            $oi = (int)$opt['open_interest'];
+            $bid = 0;
+            $ask = 0;
+            $isLive = false;
         }
         
-        $type = ($opt['optiontype'] ?? '') === 'PE' ? 'PUT' : 'CALL';
-        $strikes[$strike][$type] = [
-            'token' => $opt['symbolToken'] ?? '',
-            'ltp' => (float)($opt['ltp'] ?? 0),
-            'change' => (float)($opt['netChange'] ?? 0),
-            'change_percent' => (float)($opt['percentChange'] ?? 0),
-            'volume' => (int)($opt['tradedVolume'] ?? 0),
-            'oi' => (int)($opt['openInterest'] ?? 0),
-            'bid' => (float)($opt['bidprice'] ?? 0),
-            'ask' => (float)($opt['askprice'] ?? 0),
+        $strikeKey = (string)$strike;
+        
+        if (!isset($strikes[$strikeKey])) {
+            $strikes[$strikeKey] = ['strike' => $strike, 'CALL' => null, 'PUT' => null];
+        }
+        
+        $strikes[$strikeKey][$type] = [
+            'ltp' => $ltp,
+            'change' => $change,
+            'change_percent' => $changePct,
+            'volume' => $volume,
+            'oi' => $oi,
+            'bid' => $bid,
+            'ask' => $ask,
+            'is_live' => $isLive
         ];
+        
+        // Estimate spot price as median of ATM strikes
+        if ($spotPrice === 0 && $ltp > 0) {
+            $spotPrice = $strike;
+        }
     }
     
     ksort($strikes);
-    $expiryDates = array_keys($expiryDates);
-    sort($expiryDates);
     
     echo json_encode([
         'success' => true,
         'symbol' => $symbol,
         'expiry' => $expiry,
         'expiry_dates' => $expiryDates,
-        'spot_price' => (float)($data['spotPrice'] ?? 0),
+        'spot_price' => $spotPrice,
+        'source' => $source,
         'option_chain' => array_values($strikes)
     ]);
     
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+
+function fetchAngelOneOptionQuotes($settings, $options) {
+    $jwtToken = angelOneLogin($settings);
+    if (!$jwtToken) return [];
+    
+    $exchangeTokens = [];
+    $optionByToken = [];
+    
+    foreach ($options as $opt) {
+        $exch = $opt['exchange'] ?: 'NFO';
+        $token = $opt['token'];
+        if (!$token) continue;
+        $exchangeTokens[$exch][] = $token;
+        $optionByToken[$token] = $opt['id'];
+    }
+    
+    $quotes = [];
+    $url = 'https://apiconnect.angelone.in/rest/secure/angelbroking/market/v1/quote/';
+    
+    foreach ($exchangeTokens as $exchange => $tokens) {
+        if (empty($tokens)) continue;
+        
+        $chunks = array_chunk($tokens, 50);
+        foreach ($chunks as $chunk) {
+            $payload = json_encode([
+                'mode' => 'FULL',
+                'exchangeTokens' => [$exchange => $chunk]
+            ]);
+            
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json', 'Accept: application/json',
+                'X-UserType: USER', 'X-SourceID: WEB',
+                'X-ClientLocalIP: CLIENT_LOCAL_IP', 'X-ClientPublicIP: CLIENT_PUBLIC_IP',
+                'X-MACAddress: MAC_ADDRESS', 'X-PrivateKey: ' . $settings['api_key'],
+                'Authorization: Bearer ' . $jwtToken
+            ]);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+            $response = curl_exec($ch);
+            curl_close($ch);
+            
+            $data = json_decode($response, true);
+            if ($data && !empty($data['data']['fetched'])) {
+                foreach ($data['data']['fetched'] as $quote) {
+                    $token = $quote['symbolToken'] ?? $quote['token'] ?? '';
+                    $optionId = $optionByToken[$token] ?? 0;
+                    if ($optionId && isset($quote['ltp'])) {
+                        $quotes[$optionId] = [
+                            'ltp' => (float)$quote['ltp'],
+                            'change' => (float)($quote['netChange'] ?? 0),
+                            'change_percent' => (float)($quote['percentChange'] ?? 0),
+                            'volume' => (int)($quote['tradeVolume'] ?? 0),
+                            'oi' => (int)($quote['openInterest'] ?? 0),
+                            'bid' => (float)($quote['bidprice'] ?? 0),
+                            'ask' => (float)($quote['askprice'] ?? 0),
+                        ];
+                    }
+                }
+            }
+        }
+    }
+    
+    return $quotes;
 }
 
 function angelOneLogin($settings) {

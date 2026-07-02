@@ -65,37 +65,50 @@ try {
     
     $inserted = 0;
     $updated = 0;
+    $optionsInserted = 0;
     
     foreach ($underlyings as $und) {
         $base = $und['symbol'];
+        $nearestExpiry = '';
         
-        // Find nearest expiry futures contract
-        $futures = [];
+        // Find all F&O contracts for this underlying
+        $allContracts = [];
         foreach ($tokenMap as $key => $value) {
             if ($value['exchange'] !== 'NFO') continue;
-            $tsym = $value['tradingsymbol'];
-            $instr = $value['instrumenttype'];
-            $name = $value['name'];
-            
-            // Match futures: underlying name matches base and symbol ends with FUT
-            if (($instr === 'FUTSTK' || $instr === 'FUTIDX') && $name === $base) {
-                if (substr($tsym, -3) === 'FUT') {
-                    $futures[] = $value;
-                }
+            if ($value['name'] === $base) {
+                $allContracts[] = $value;
             }
         }
         
-        // Sort by expiry and pick nearest
+        // Find nearest expiry
+        $expiryMap = [];
+        foreach ($allContracts as $c) {
+            if ($c['expiry']) {
+                $ts = strtotime($c['expiry']);
+                if ($ts) $expiryMap[$c['expiry']] = $ts;
+            }
+        }
+        if (!empty($expiryMap)) {
+            asort($expiryMap);
+            $nearestExpiry = array_key_first($expiryMap);
+        }
+        
+        if (!$nearestExpiry) continue;
+        $expiryDate = date('Y-m-d', strtotime($nearestExpiry));
+        
+        // Find nearest expiry futures contract
+        $futures = array_filter($allContracts, function($c) {
+            return ($c['instrumenttype'] === 'FUTSTK' || $c['instrumenttype'] === 'FUTIDX') && substr($c['tradingsymbol'], -3) === 'FUT';
+        });
+        
         usort($futures, function($a, $b) {
             return strtotime($a['expiry']) <=> strtotime($b['expiry']);
         });
         
         if (!empty($futures)) {
             $fut = $futures[0];
-            $expiryDate = date('Y-m-d', strtotime($fut['expiry']));
             $lotSize = $fut['lotsize'] > 0 ? (int)$fut['lotsize'] : $und['lot_size'];
             
-            // Check if exists
             $check = $db->prepare("SELECT id FROM fno_contracts WHERE symbol = ? AND contract_type = 'FUTURES' AND expiry_date = ?");
             $check->execute([$base, $expiryDate]);
             $existing = $check->fetchColumn();
@@ -110,61 +123,61 @@ try {
                 $inserted++;
             }
         }
-    }
-    
-    // Debug: show raw sample entries
-    $rawSamples = array_slice($master, 0, 5, true);
-    
-    // Debug: show any entries with 'FUT' in any field
-    $futSamples = [];
-    foreach ($master as $item) {
-        $itemJson = json_encode($item);
-        if (stripos($itemJson, 'FUT') !== false) {
-            $futSamples[] = $item;
-            if (count($futSamples) >= 5) break;
+        
+        // Find options for nearest expiry
+        $options = array_filter($allContracts, function($c) use ($nearestExpiry) {
+            return ($c['instrumenttype'] === 'OPTSTK' || $c['instrumenttype'] === 'OPTIDX') && $c['expiry'] === $nearestExpiry;
+        });
+        
+        // Group by strike
+        $strikes = [];
+        foreach ($options as $opt) {
+            $strikeVal = (float)$opt['strike'];
+            if ($strikeVal > 100000) $strikeVal = $strikeVal / 100;
+            $strikeKey = number_format($strikeVal, 2, '.', '');
+            $type = (substr($opt['tradingsymbol'], -2) === 'PE') ? 'PUT' : 'CALL';
+            if (!isset($strikes[$strikeKey])) $strikes[$strikeKey] = [];
+            $strikes[$strikeKey][$type] = $opt;
+        }
+        
+        // Sort strikes and pick middle 20 (around ATM)
+        ksort($strikes);
+        $strikeKeys = array_keys($strikes);
+        $total = count($strikeKeys);
+        $start = max(0, floor($total / 2) - 10);
+        $selectedStrikes = array_slice($strikeKeys, $start, 20, true);
+        
+        foreach ($selectedStrikes as $strikeKey) {
+            $row = $strikes[$strikeKey];
+            foreach (['CALL', 'PUT'] as $type) {
+                if (!isset($row[$type])) continue;
+                $opt = $row[$type];
+                $strikeVal = (float)$opt['strike'];
+                if ($strikeVal > 100000) $strikeVal = $strikeVal / 100;
+                
+                $check = $db->prepare("SELECT id FROM fno_contracts WHERE symbol = ? AND contract_type = ? AND strike_price = ? AND expiry_date = ?");
+                $check->execute([$base, $type, $strikeVal, $expiryDate]);
+                $existing = $check->fetchColumn();
+                
+                if ($existing) {
+                    $upd = $db->prepare("UPDATE fno_contracts SET token = ?, exchange = ?, lot_size = ?, updated_at = NOW() WHERE id = ?");
+                    $upd->execute([$opt['token'], $opt['exchange'], $und['lot_size'], $existing]);
+                } else {
+                    $ins = $db->prepare("INSERT INTO fno_contracts (symbol, stock_name, contract_type, strike_price, expiry_date, lot_size, token, exchange) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $ins->execute([$base, $und['name'], $type, $strikeVal, $expiryDate, $und['lot_size'], $opt['token'], $opt['exchange']]);
+                    $optionsInserted++;
+                }
+            }
         }
     }
     
-    // Debug: show any entries with RELIANCE in any field
-    $relSamples = [];
-    foreach ($master as $item) {
-        $itemJson = json_encode($item);
-        if (stripos($itemJson, 'RELIANCE') !== false) {
-            $relSamples[] = $item;
-            if (count($relSamples) >= 5) break;
-        }
-    }
-    
-    // Debug: show sample futures entries
-    $samples = [];
-    $count = 0;
-    foreach ($tokenMap as $key => $value) {
-        if (($value['instrumenttype'] === 'FUTIDX' || $value['instrumenttype'] === 'FUTSTK') && $count < 10) {
-            $samples[] = $value;
-            $count++;
-        }
-    }
-    
-    // Debug: show samples for first underlying
-    $firstBase = $underlyings[0]['symbol'];
-    $matchedSamples = [];
-    foreach ($tokenMap as $key => $value) {
-        if ($value['exchange'] === 'NFO' && strpos($value['tradingsymbol'], $firstBase) === 0) {
-            $matchedSamples[] = $value;
-            if (count($matchedSamples) >= 5) break;
-        }
-    }
-    
+    // Clean up debug output
     echo json_encode([
         'success' => true,
         'master_count' => count($master),
         'futures_inserted' => $inserted,
         'futures_updated' => $updated,
-        'raw_samples' => $rawSamples,
-        'fut_symbol_samples' => $futSamples,
-        'reliance_samples' => $relSamples,
-        'sample_futures' => $samples,
-        'sample_matches_for_' . $firstBase => $matchedSamples,
+        'options_inserted' => $optionsInserted,
         'message' => 'F&O tokens discovered and stored'
     ], JSON_PRETTY_PRINT);
     
