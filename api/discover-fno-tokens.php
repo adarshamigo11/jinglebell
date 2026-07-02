@@ -41,7 +41,7 @@ try {
     $tokenMap = [];
     foreach ($master as $item) {
         $exch = $item['exch_seg'] ?? '';
-        $tsym = $item['tradingsymbol'] ?? '';
+        $tsym = $item['symbol'] ?? '';
         $token = $item['token'] ?? '';
         $name = $item['name'] ?? '';
         $strike = $item['strike'] ?? 0;
@@ -68,19 +68,18 @@ try {
     
     foreach ($underlyings as $und) {
         $base = $und['symbol'];
-        $isIndex = $und['index'] ?? false;
-        $exchange = $isIndex ? 'NFO' : 'NFO';
         
-        // Find nearest monthly expiry futures contract
+        // Find nearest expiry futures contract
         $futures = [];
         foreach ($tokenMap as $key => $value) {
             if ($value['exchange'] !== 'NFO') continue;
             $tsym = $value['tradingsymbol'];
             $instr = $value['instrumenttype'];
+            $name = $value['name'];
             
-            // Match futures: e.g. RELIANCE30JUL25FUT or NIFTY31JUL25FUT
-            if ($instr === 'FUTIDX' || $instr === 'FUTSTK') {
-                if (strpos($tsym, $base) === 0 && substr($tsym, -3) === 'FUT') {
+            // Match futures: underlying name matches base and symbol ends with FUT
+            if (($instr === 'FUTSTK' || $instr === 'FUTIDX') && $name === $base) {
+                if (substr($tsym, -3) === 'FUT') {
                     $futures[] = $value;
                 }
             }
