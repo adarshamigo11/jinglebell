@@ -304,8 +304,10 @@ canvas { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale
         </div>
         
         <!-- Chart Container -->
-        <div class="chart-container" style="height: 400px; position: relative; background: #FFFFFF;">
-          <div id="tradingview_chart" style="width:100%;height:100%;"></div>
+        <div class="chart-container" style="height: 400px; position: relative; background: #FFFFFF; display:flex;align-items:center;justify-content:center;color:var(--groww-text-secondary);flex-direction:column;gap:12px;">
+          <i class="fa fa-chart-line" style="font-size:40px;opacity:0.4;"></i>
+          <div>Advanced chart coming soon</div>
+          <div style="font-size:12px;opacity:0.7;">Live price and order placement are active</div>
         </div>
         
         <!-- OHLC Stats Below Chart -->
@@ -605,53 +607,16 @@ async function loadIndexData() {
   }
 }
 
-// ── Load TradingView chart ──
-let tvWidget = null;
-
-function getTVInterval(range) {
-  const map = { '1D': '15', '5D': '60', '1M': 'D', '6M': 'D', '1Y': 'W', '5Y': 'M' };
-  return map[range] || 'D';
-}
-
+// ── Chart placeholder ──
 function loadChart(range) {
   currentRange = range;
   document.querySelectorAll('.time-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.range === range);
   });
-
-  const container = document.getElementById('tradingview_chart');
-  container.innerHTML = '';
-
-  if (!TV_SYMBOL || TV_SYMBOL === INDEX_SYMBOL) {
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--groww-text-secondary);">Chart not available for this symbol</div>';
-    return;
-  }
-
-  tvWidget = new TradingView.widget({
-    width: '100%',
-    height: '100%',
-    symbol: TV_SYMBOL,
-    interval: getTVInterval(range),
-    timezone: 'Asia/Kolkata',
-    theme: 'light',
-    style: '1',
-    locale: 'in',
-    toolbar_bg: '#f1f3f6',
-    enable_publishing: false,
-    hide_top_toolbar: false,
-    hide_side_toolbar: true,
-    save_image: false,
-    container_id: 'tradingview_chart',
-    disabled_features: ['use_localstorage_for_settings'],
-    overrides: {
-      "mainSeriesProperties.candleStyle.upColor": "#00D09C",
-      "mainSeriesProperties.candleStyle.downColor": "#FF4D4D"
-    }
-  });
 }
 
 function renderChart(prices, isPositive) {
-  // Kept for compatibility; TradingView handles rendering
+  // Chart removed; placeholder shown
 }
 
 // Init
@@ -665,7 +630,6 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(() => loadChart(currentRange), 250);
 });
 </script>
-<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
 </body>
 </html>
