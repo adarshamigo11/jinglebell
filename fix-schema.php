@@ -57,6 +57,29 @@ try {
         }
     }
     
+    // Also fix fno_contracts table
+    echo "\n--- fno_contracts ---\n";
+    $stmt = $db->query("SHOW COLUMNS FROM fno_contracts");
+    $fnoColumns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    echo "Current columns: " . implode(', ', $fnoColumns) . "\n";
+    
+    $fnoAdditions = [
+        "token" => "ALTER TABLE fno_contracts ADD COLUMN `token` VARCHAR(50) DEFAULT NULL",
+        "exchange" => "ALTER TABLE fno_contracts ADD COLUMN `exchange` VARCHAR(20) DEFAULT 'NSE'",
+        "open_price" => "ALTER TABLE fno_contracts ADD COLUMN `open_price` DECIMAL(12,2) DEFAULT NULL"
+    ];
+    
+    foreach ($fnoAdditions as $col => $sql) {
+        if (!in_array($col, $fnoColumns)) {
+            try {
+                $db->exec($sql);
+                echo "Added column: {$col} - OK\n";
+            } catch (PDOException $e) {
+                echo "Add {$col}: " . $e->getMessage() . "\n";
+            }
+        }
+    }
+    
     // Verify
     $stmt = $db->query("SHOW COLUMNS FROM stock_price_cache");
     $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
