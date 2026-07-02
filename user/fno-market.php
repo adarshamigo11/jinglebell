@@ -55,9 +55,12 @@ $currentPage = 'fno-market';
 
 <!-- Main Content -->
 <div class="main-content">
-    <div style="margin-bottom: 24px;">
-        <h1 style="font-size: 28px; margin-bottom: 8px;">F&O Market</h1>
-        <p style="color: var(--groww-text-secondary);">Live Futures & Options</p>
+    <div style="margin-bottom: 24px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h1 style="font-size: 28px; margin-bottom: 8px;">F&O Market</h1>
+            <p style="color: var(--groww-text-secondary);">Live Futures & Options</p>
+        </div>
+        <a href="fno-option-chain.php" class="filter-tab" style="background:var(--primary);color:white;border-color:var(--primary);"><i class="fa fa-list"></i> Option Chain</a>
     </div>
     
     <div class="controls">
