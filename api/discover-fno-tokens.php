@@ -113,6 +113,27 @@ try {
         }
     }
     
+    // Debug: show raw sample entries
+    $rawSamples = array_slice($master, 0, 5, true);
+    
+    // Debug: show any entries with 'FUT' in tradingsymbol
+    $futSamples = [];
+    foreach ($master as $item) {
+        if (stripos($item['tradingsymbol'] ?? '', 'FUT') !== false) {
+            $futSamples[] = $item;
+            if (count($futSamples) >= 5) break;
+        }
+    }
+    
+    // Debug: show any entries with RELIANCE
+    $relSamples = [];
+    foreach ($master as $item) {
+        if (stripos($item['tradingsymbol'] ?? '', 'RELIANCE') !== false) {
+            $relSamples[] = $item;
+            if (count($relSamples) >= 5) break;
+        }
+    }
+    
     // Debug: show sample futures entries
     $samples = [];
     $count = 0;
@@ -138,6 +159,9 @@ try {
         'master_count' => count($master),
         'futures_inserted' => $inserted,
         'futures_updated' => $updated,
+        'raw_samples' => $rawSamples,
+        'fut_symbol_samples' => $futSamples,
+        'reliance_samples' => $relSamples,
         'sample_futures' => $samples,
         'sample_matches_for_' . $firstBase => $matchedSamples,
         'message' => 'F&O tokens discovered and stored'
