@@ -116,19 +116,21 @@ try {
     // Debug: show raw sample entries
     $rawSamples = array_slice($master, 0, 5, true);
     
-    // Debug: show any entries with 'FUT' in tradingsymbol
+    // Debug: show any entries with 'FUT' in any field
     $futSamples = [];
     foreach ($master as $item) {
-        if (stripos($item['tradingsymbol'] ?? '', 'FUT') !== false) {
+        $itemJson = json_encode($item);
+        if (stripos($itemJson, 'FUT') !== false) {
             $futSamples[] = $item;
             if (count($futSamples) >= 5) break;
         }
     }
     
-    // Debug: show any entries with RELIANCE
+    // Debug: show any entries with RELIANCE in any field
     $relSamples = [];
     foreach ($master as $item) {
-        if (stripos($item['tradingsymbol'] ?? '', 'RELIANCE') !== false) {
+        $itemJson = json_encode($item);
+        if (stripos($itemJson, 'RELIANCE') !== false) {
             $relSamples[] = $item;
             if (count($relSamples) >= 5) break;
         }
