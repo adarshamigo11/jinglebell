@@ -113,13 +113,35 @@ try {
         }
     }
     
+    // Debug: show sample futures entries
+    $samples = [];
+    $count = 0;
+    foreach ($tokenMap as $key => $value) {
+        if (($value['instrumenttype'] === 'FUTIDX' || $value['instrumenttype'] === 'FUTSTK') && $count < 10) {
+            $samples[] = $value;
+            $count++;
+        }
+    }
+    
+    // Debug: show samples for first underlying
+    $firstBase = $underlyings[0]['symbol'];
+    $matchedSamples = [];
+    foreach ($tokenMap as $key => $value) {
+        if ($value['exchange'] === 'NFO' && strpos($value['tradingsymbol'], $firstBase) === 0) {
+            $matchedSamples[] = $value;
+            if (count($matchedSamples) >= 5) break;
+        }
+    }
+    
     echo json_encode([
         'success' => true,
         'master_count' => count($master),
         'futures_inserted' => $inserted,
         'futures_updated' => $updated,
+        'sample_futures' => $samples,
+        'sample_matches_for_' . $firstBase => $matchedSamples,
         'message' => 'F&O tokens discovered and stored'
-    ]);
+    ], JSON_PRETTY_PRINT);
     
 } catch (Exception $e) {
     http_response_code(500);
