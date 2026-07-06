@@ -248,7 +248,7 @@ async function loadOptionChain(symbol, expiry) {
             document.getElementById('noData').style.display = 'block';
         }
     } catch (e) {
-        document.getElementById('loading').innerHTML = '<i class="fa fa-exclamation-circle" style="font-size:24px;color:#ef4444;margin-bottom:10px;display:block;"></i> Error loading option chain';
+        document.getElementById('loading').innerHTML = '<i class="fa fa-exclamation-circle" style="font-size:24px;color:#ef4444;margin-bottom:10px;display:block;"></i> Error: ' + e.message;
         console.error(e);
     }
 }
