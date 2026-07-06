@@ -405,7 +405,7 @@ window.addEventListener('scroll', function() {
 });
 
 // --- Init ---
-loadOptionChain(SYMBOL);
+document.addEventListener('DOMContentLoaded', function() { loadOptionChain(SYMBOL); });
 </script>
 
 </body>
