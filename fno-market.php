@@ -225,7 +225,13 @@ async function loadOptionChain(symbol, expiry) {
     try {
         const url = 'api/get-option-chain-live.php?symbol=' + encodeURIComponent(symbol) + (expiry ? '&expiry=' + encodeURIComponent(expiry) : '');
         const res = await fetch(url);
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch(pe) {
+            console.error('Invalid JSON response:', text.substring(0, 500));
+            document.getElementById('loading').innerHTML = '<i class="fa fa-exclamation-circle" style="font-size:24px;color:#ef4444;margin-bottom:10px;display:block;"></i> Server returned invalid response. Check console.';
+            return;
+        }
 
         if (!data.success) {
             document.getElementById('loading').innerHTML = '<i class="fa fa-exclamation-circle" style="font-size:24px;color:#ef4444;margin-bottom:10px;display:block;"></i>' + (data.error || 'Failed to load');
