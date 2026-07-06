@@ -77,8 +77,12 @@ try {
             $changePct = round((float)($live['change_percent'] ?? 0), 2);
             $volume = (int)($live['volume'] ?? 0);
             $oi = (int)($live['oi'] ?? 0);
+            $oiChange = (int)($live['oi_change'] ?? 0);
+            $iv = round((float)($live['iv'] ?? 0), 2);
             $bid = round((float)($live['bid'] ?? 0), 2);
+            $bidQty = (int)($live['bid_qty'] ?? 0);
             $ask = round((float)($live['ask'] ?? 0), 2);
+            $askQty = (int)($live['ask_qty'] ?? 0);
             $isLive = true;
             
             // Update cache
@@ -96,8 +100,12 @@ try {
             $changePct = round((float)$opt['change_percent'], 2);
             $volume = (int)$opt['volume'];
             $oi = (int)$opt['open_interest'];
+            $oiChange = 0;
+            $iv = 0;
             $bid = 0;
+            $bidQty = 0;
             $ask = 0;
+            $askQty = 0;
             $isLive = false;
         }
         
@@ -113,8 +121,12 @@ try {
             'change_percent' => $changePct,
             'volume' => $volume,
             'oi' => $oi,
+            'oi_change' => $oiChange,
+            'iv' => $iv,
             'bid' => $bid,
+            'bid_qty' => $bidQty,
             'ask' => $ask,
+            'ask_qty' => $askQty,
             'is_live' => $isLive
         ];
         
@@ -197,8 +209,12 @@ function fetchAngelOneOptionQuotes($settings, $options) {
                             'change_percent' => (float)($quote['percentChange'] ?? 0),
                             'volume' => (int)($quote['tradeVolume'] ?? 0),
                             'oi' => (int)($quote['openInterest'] ?? 0),
+                            'oi_change' => (int)($quote['oiChange'] ?? 0),
+                            'iv' => (float)($quote['impliedVolatility'] ?? 0),
                             'bid' => (float)($quote['bidprice'] ?? 0),
+                            'bid_qty' => (int)($quote['bidQty'] ?? 0),
                             'ask' => (float)($quote['askprice'] ?? 0),
+                            'ask_qty' => (int)($quote['askQty'] ?? 0),
                         ];
                     }
                 }
