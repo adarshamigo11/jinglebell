@@ -134,16 +134,14 @@ $indexSymbols = ['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY'];
             .oc-filter-bar label { font-size: 11px; }
             .oc-filter-bar select { min-width: 90px; font-size: 12px; padding: 6px 8px; }
             .oc-spot-value { font-size: 18px; }
-            .oc-table tbody td { padding: 8px 3px; font-size: 11px; }
-            /* Mobile: only show LTP, Volume, Chng + Strike */
+            .oc-table thead th, .oc-table tbody td { font-size: 11px; padding: 6px 2px; }
+            /* Mobile: keep table layout, hide non-essential columns */
             .oc-table thead th:nth-child(1),
             .oc-table tbody td:nth-child(1),
             .oc-table thead th:nth-child(2),
             .oc-table tbody td:nth-child(2),
             .oc-table thead th:nth-child(4),
             .oc-table tbody td:nth-child(4),
-            .oc-table thead th:nth-child(5),
-            .oc-table tbody td:nth-child(5),
             .oc-table thead th:nth-child(7),
             .oc-table tbody td:nth-child(7),
             .oc-table thead th:nth-child(8),
@@ -163,8 +161,13 @@ $indexSymbols = ['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY'];
             .oc-table thead th:nth-child(18),
             .oc-table tbody td:nth-child(18),
             .oc-table thead th:nth-child(20),
-            .oc-table tbody td:nth-child(20) { display: none; }
-            .oc-table { min-width: 360px; }
+            .oc-table tbody td:nth-child(20) { display: none !important; }
+            /* Keep table as table */
+            .oc-table { display: table !important; min-width: 320px; width: 100%; border-collapse: collapse; }
+            .oc-table thead { display: table-header-group !important; }
+            .oc-table tbody { display: table-row-group !important; }
+            .oc-table tr { display: table-row !important; }
+            .oc-table thead th, .oc-table tbody td { display: table-cell !important; }
         }
     </style>
     <link rel="stylesheet" href="public/assets/css/mobile-responsive.css">
