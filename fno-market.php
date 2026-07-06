@@ -144,30 +144,6 @@ $indexSymbols = ['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY'];
 <?php include 'includes/user-top-nav.php'; ?>
 
 <div class="main-content">
-    <!-- Filter Bar -->
-    <div class="oc-filter-bar">
-        <label>View Options Contracts for:</label>
-        <select id="indexSelect" onchange="changeSymbol(this.value)">
-            <?php foreach ($validSymbols as $s): ?>
-            <option value="<?= $s ?>" <?= $s === $symbol ? 'selected' : '' ?>><?= $s ?></option>
-            <?php endforeach; ?>
-        </select>
-
-        <span class="oc-filter-sep">|</span>
-
-        <label>Expiry Date:</label>
-        <select id="expirySelect" onchange="changeExpiry(this.value)">
-            <option value="">Loading...</option>
-        </select>
-
-        <span class="oc-filter-sep">|</span>
-
-        <label>Strike Price:</label>
-        <select id="strikeFilter" onchange="filterStrike(this.value)">
-            <option value="">All</option>
-        </select>
-    </div>
-
     <!-- Spot Price Row -->
     <div class="oc-spot-row">
         <div class="oc-spot-left">
@@ -176,14 +152,12 @@ $indexSymbols = ['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY'];
             <span class="oc-spot-time" id="spotTime"></span>
         </div>
         <div class="oc-spot-right">
-            <div class="oc-stream-toggle">
-                <span>Streaming:</span>
-                <div class="toggle-track" id="streamToggle" onclick="toggleStream()">
-                    <div class="toggle-knob"></div>
-                </div>
-                <span id="streamLabel">Off</span>
-            </div>
-            <a href="#" onclick="downloadCSV(); return false;"><i class="fa fa-download"></i> Download (.csv)</a>
+            <label>View Options Contracts for:</label>
+            <select id="indexSelect2" onchange="changeSymbol(this.value)" style="padding:6px 12px;border:2px solid var(--oc-filter-border);border-radius:6px;font-size:13px;font-weight:600;">
+                <?php foreach ($validSymbols as $s): ?>
+                <option value="<?= $s ?>" <?= $s === $symbol ? 'selected' : '' ?>><?= $s ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
     </div>
 
