@@ -243,8 +243,6 @@ async function loadOptionChain(symbol, expiry) {
         currentChain = data.option_chain || [];
 
         updateSpotPrice(symbol, data.spot_price);
-        renderExpiryDropdown();
-        renderStrikeFilter();
         renderChain(currentChain);
 
         document.getElementById('loading').style.display = 'none';
